@@ -25,7 +25,7 @@ så et brett kan reproduseres fra en seed.
 core/     ren TypeScript, ingen import fra React eller Electron
   rng.ts        seedbar generator
   tasks/        oppgavemaler, register og mathjs-verifisering
-  sudoku/       generering, løser og validering   (M2)
+  sudoku/       generering, løser og validering
   game/         motor, poeng, progresjon, adaptiv vekting  (M3, M5-M7)
 electron/  hovedprosess og preload   (M4)
 src/       React-UI                  (M4)
@@ -54,7 +54,7 @@ trengs ingen egen kjøretidsavhengighet for TypeScript.
 ## Status
 
 - [x] **M1** RNG og oppgavemaler for derivasjon og funksjoner
-- [ ] **M2** Sudokumotor
+- [x] **M2** Sudokumotor
 - [ ] **M3** Brettbygging
 - [ ] **M4** Electron-skall og UI
 - [ ] **M5** Poeng, liv, hint, timer
