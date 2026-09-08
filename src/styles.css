@@ -1,0 +1,333 @@
+/*
+ * Midlertidig, nøytral styling. Hele denne filen er ment å kastes når
+ * designarbeidet begynner. Ingen farger eller former her er valgt av estetiske
+ * grunner, bare for å gjøre tilstandene lesbare mens funksjonaliteten bygges.
+ */
+
+:root {
+  --celle: 56px;
+  --ramme: #999;
+  --ramme-tykk: #333;
+  --flate: #fff;
+  --flate-dempet: #f2f2f2;
+  --flate-valgt: #d8e4f0;
+  --flate-beslektet: #f0f0f0;
+  --flate-samme: #e6ecdf;
+  --flate-feil: #f3d6d6;
+  --tekst: #1a1a1a;
+  --tekst-dempet: #666;
+  --laast: #444;
+  --feil: #a33;
+  --ok: #367;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--flate-dempet);
+  color: var(--tekst);
+  font-size: 14px;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+/* ---------- Oppsettskjerm ---------- */
+
+.oppsett {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+}
+
+.oppsett h1 {
+  margin: 0 0 4px;
+  font-size: 28px;
+}
+
+.ingress {
+  margin: 0 0 24px;
+  color: var(--tekst-dempet);
+  max-width: 52ch;
+}
+
+.oppsett fieldset {
+  border: 1px solid var(--ramme);
+  border-radius: 4px;
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  background: var(--flate);
+}
+
+.oppsett legend {
+  padding: 0 6px;
+  font-weight: 600;
+}
+
+.oppsett label {
+  display: block;
+  padding: 3px 0;
+}
+
+.oppsett input[type='text'] {
+  font: inherit;
+  padding: 6px 8px;
+  width: 100%;
+  border: 1px solid var(--ramme);
+  border-radius: 3px;
+}
+
+.start {
+  padding: 10px 24px;
+  font-size: 16px;
+  border: 1px solid var(--ramme-tykk);
+  border-radius: 4px;
+  background: var(--flate);
+}
+
+.start:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.feilmelding {
+  border-left: 3px solid var(--feil);
+  background: var(--flate-feil);
+  padding: 8px 12px;
+  margin: 0 0 16px;
+}
+
+/* ---------- Spillskjerm ---------- */
+
+.app {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 16px 24px 48px;
+}
+
+.hud {
+  background: var(--flate);
+  border: 1px solid var(--ramme);
+  border-radius: 4px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.hudlinje {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  padding: 3px 0;
+  color: var(--tekst-dempet);
+}
+
+.hudlinje.knapper {
+  gap: 8px;
+  padding-top: 10px;
+}
+
+.hud .merke {
+  font-weight: 700;
+  color: var(--tekst);
+}
+
+.hud .seed {
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+}
+
+.hud .ok {
+  color: var(--ok);
+}
+
+.hud .feil {
+  color: var(--feil);
+}
+
+.hud .ferdig {
+  color: var(--ok);
+}
+
+.hud button {
+  padding: 6px 12px;
+  border: 1px solid var(--ramme);
+  border-radius: 3px;
+  background: var(--flate);
+}
+
+.hud button.aktiv {
+  background: var(--flate-valgt);
+  border-color: var(--ramme-tykk);
+}
+
+.hud button.midlertidig {
+  border-style: dashed;
+  color: var(--tekst-dempet);
+}
+
+.tastatur {
+  margin: 10px 0 0;
+  color: var(--tekst-dempet);
+  font-size: 12px;
+}
+
+.spillflate {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+/* ---------- Brett ---------- */
+
+.brett {
+  display: grid;
+  border: 2px solid var(--ramme-tykk);
+  background: var(--ramme-tykk);
+  gap: 1px;
+  padding: 1px;
+}
+
+.celle {
+  width: var(--celle);
+  height: var(--celle);
+  border: 0;
+  background: var(--flate);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  position: relative;
+}
+
+/*
+ * Blokkskillene tegnes som kanter inne i cellen. Margin fungerer ikke her:
+ * grid-sporene har fast bredde, så marginen blir spist opp i stedet for å
+ * skyve nabocellen unna.
+ */
+.celle.kant-hoyre {
+  border-right: 3px solid var(--ramme-tykk);
+}
+
+.celle.kant-bunn {
+  border-bottom: 3px solid var(--ramme-tykk);
+}
+
+.celleverdi {
+  font-size: 22px;
+}
+
+.celle.status-låst .celleverdi {
+  font-weight: 700;
+  color: var(--laast);
+}
+
+.celle.status-fylt .celleverdi {
+  color: var(--ok);
+}
+
+.celle.status-konflikt {
+  background: var(--flate-feil);
+}
+
+.celle.status-konflikt .celleverdi {
+  color: var(--feil);
+  font-weight: 700;
+}
+
+.celle.beslektet {
+  background: var(--flate-beslektet);
+}
+
+.celle.samme-tall {
+  background: var(--flate-samme);
+}
+
+.celle.valgt {
+  background: var(--flate-valgt);
+  outline: 2px solid var(--ramme-tykk);
+  outline-offset: -2px;
+}
+
+.oppgavemerke {
+  color: var(--tekst-dempet);
+  font-size: 16px;
+  font-style: italic;
+}
+
+.notater {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  width: 100%;
+  height: 100%;
+  font-size: 10px;
+  color: var(--tekst-dempet);
+}
+
+.notat {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---------- Oppgavepanel ---------- */
+
+.oppgavepanel {
+  flex: 1 1 340px;
+  min-width: 320px;
+  background: var(--flate);
+  border: 1px solid var(--ramme);
+  border-radius: 4px;
+  padding: 16px 20px;
+}
+
+.oppgavepanel h2 {
+  margin: 0 0 4px;
+  font-size: 15px;
+}
+
+.malid {
+  margin: 0 0 12px;
+  color: var(--tekst-dempet);
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 12px;
+}
+
+.matte {
+  margin: 16px 0;
+  overflow-x: auto;
+}
+
+.latexkilde {
+  background: var(--flate-dempet);
+  padding: 8px;
+  overflow-x: auto;
+}
+
+.spørsmål {
+  font-size: 16px;
+  margin: 16px 0 8px;
+}
+
+.hjelpetekst,
+.tomtekst {
+  color: var(--tekst-dempet);
+  font-size: 12px;
+}
+
+.cellestatus {
+  display: flex;
+  gap: 16px;
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ramme);
+  color: var(--tekst-dempet);
+  font-size: 12px;
+}

@@ -5,18 +5,32 @@
   "description": "Sudoku der hver tomme celle er en matteoppgave fra MAT102-pensum.",
   "type": "module",
   "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "demo:tasks": "node --no-warnings=ExperimentalWarning scripts/demo-tasks.ts",
-    "demo:brett": "node --no-warnings=ExperimentalWarning scripts/demo-board.ts"
+    "demo:brett": "node --no-warnings=ExperimentalWarning scripts/demo-board.ts",
+    "dev:web": "vite --mode web"
   },
   "dependencies": {
-    "mathjs": "^14.9.0"
+    "katex": "^0.18.7",
+    "mathjs": "^14.9.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "@types/node": "^24.9.0",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^5.2.0",
+    "electron": "^44.2.0",
     "typescript": "^5.9.3",
+    "vite": "^7.3.6",
+    "vite-plugin-electron": "^1.1.2",
     "vitest": "^3.2.4"
-  }
+  },
+  "main": "dist-electron/main.mjs"
 }
