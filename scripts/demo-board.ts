@@ -1,0 +1,78 @@
+/**
+ * Viser et ferdig brett med oppgaver i terminalen.
+ *
+ *   npm run demo:brett
+ *   npm run demo:brett -- --seed=hvl --storrelse=6 --nivaa=2 --brettnivaa=3
+ *   npm run demo:brett -- --fasit
+ */
+import type { BoardDifficulty } from '../core/sudoku/generate.ts';
+import { generateBoard, remainingCells } from '../core/game/engine.ts';
+import type { BoardSize } from '../core/sudoku/grid.ts';
+import { gridToString, isBoardSize } from '../core/sudoku/grid.ts';
+import type { Difficulty, Topic } from '../core/tasks/types.ts';
+import { ALL_TOPICS } from '../core/tasks/types.ts';
+
+function flag(name: string): string | undefined {
+  const prefix = `--${name}=`;
+  return process.argv.find((arg) => arg.startsWith(prefix))?.slice(prefix.length);
+}
+
+const seed = flag('seed') ?? `brett-${Date.now()}`;
+
+const rawSize = Number(flag('storrelse') ?? 9);
+const size: BoardSize = isBoardSize(rawSize) ? rawSize : 9;
+
+const rawTask = Number(flag('nivaa') ?? 3);
+const taskDifficulty: Difficulty = rawTask === 1 ? 1 : rawTask === 2 ? 2 : 3;
+
+const rawBoard = Number(flag('brettnivaa') ?? 2);
+const boardDifficulty: BoardDifficulty = rawBoard === 1 ? 1 : rawBoard === 3 ? 3 : 2;
+
+const chosen = (flag('temaer') ?? '')
+  .split(',')
+  .map((part) => part.trim())
+  .filter((part): part is Topic => part === 'derivasjon' || part === 'funksjoner');
+const topics = chosen.length > 0 ? chosen : ALL_TOPICS;
+
+const board = generateBoard({ size, topics, taskDifficulty, boardDifficulty, seed });
+const open = remainingCells(board);
+
+console.log(`Seed: ${board.seed}`);
+console.log(
+  `${size}x${size}   brettnivå ${boardDifficulty}   oppgavenivå <= ${taskDifficulty}   ` +
+    `temaer: ${topics.join(', ')}`,
+);
+console.log(`${open.length} celler med oppgave, ${size * size - open.length} givne.`);
+console.log('');
+console.log('Utgangsstilling (punktum = celle med oppgave):');
+console.log(gridToString(board.puzzle));
+
+if (process.argv.includes('--fasit')) {
+  console.log('');
+  console.log('Fasit:');
+  console.log(gridToString(board.solution));
+}
+
+console.log('');
+console.log('Oppgavene:');
+console.log('='.repeat(72));
+
+for (const cell of open) {
+  const task = cell.task;
+  if (task === null) continue;
+  console.log(`(rad ${cell.row + 1}, kol ${cell.col + 1})  ${task.templateId}   -> ${task.answer}`);
+  console.log(`    ${task.latex}`);
+  console.log(`    ${task.prompt}`);
+}
+
+const templates = new Map<string, number>();
+for (const cell of open) {
+  if (cell.task === null) continue;
+  templates.set(cell.task.templateId, (templates.get(cell.task.templateId) ?? 0) + 1);
+}
+
+console.log('');
+console.log('Fordeling av maler:');
+for (const [id, count] of [...templates].sort((a, b) => b[1] - a[1])) {
+  console.log(`  ${id.padEnd(20)} ${count}`);
+}

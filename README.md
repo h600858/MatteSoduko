@@ -26,7 +26,7 @@ core/     ren TypeScript, ingen import fra React eller Electron
   rng.ts        seedbar generator
   tasks/        oppgavemaler, register og mathjs-verifisering
   sudoku/       generering, løser og validering
-  game/         motor, poeng, progresjon, adaptiv vekting  (M3, M5-M7)
+  game/         motor og brettbygging (poeng og progresjon i M5-M7)
 electron/  hovedprosess og preload   (M4)
 src/       React-UI                  (M4)
 tests/     vitest
@@ -39,13 +39,16 @@ scripts/   CLI-verktøy
 npm test            # hele testsuiten
 npm run typecheck   # tsc --noEmit, strict mode
 npm run demo:tasks  # printer ti genererte oppgaver med fasit
+npm run demo:brett  # printer et ferdig brett med oppgave i hver tomme celle
 ```
 
-`demo:tasks` tar flagg:
+Begge demo-skriptene tar flagg:
 
 ```bash
 npm run demo:tasks -- --seed=hvl --antall=20 --nivaa=2 --temaer=derivasjon
 npm run demo:tasks -- --stats     # null-rate per mal
+
+npm run demo:brett -- --seed=hvl --storrelse=6 --nivaa=2 --brettnivaa=3 --fasit
 ```
 
 Skriptene kjøres direkte med Node sin innebygde TypeScript-stripping, så det
@@ -55,7 +58,7 @@ trengs ingen egen kjøretidsavhengighet for TypeScript.
 
 - [x] **M1** RNG og oppgavemaler for derivasjon og funksjoner
 - [x] **M2** Sudokumotor
-- [ ] **M3** Brettbygging
+- [x] **M3** Brettbygging
 - [ ] **M4** Electron-skall og UI
 - [ ] **M5** Poeng, liv, hint, timer
 - [ ] **M6** Persistens og statistikk

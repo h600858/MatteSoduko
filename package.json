@@ -8,7 +8,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "demo:tasks": "node --no-warnings=ExperimentalWarning scripts/demo-tasks.ts"
+    "demo:tasks": "node --no-warnings=ExperimentalWarning scripts/demo-tasks.ts",
+    "demo:brett": "node --no-warnings=ExperimentalWarning scripts/demo-board.ts"
   },
   "dependencies": {
     "mathjs": "^14.9.0"
