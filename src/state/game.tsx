@@ -1,23 +1,27 @@
 /**
  * Spilltilstanden for UI-et.
  *
- * All regellogikk ligger i core/game/engine.ts. Denne filen holder bare rede på
- * hva som er valgt, om notatmodus er på, og hvilket brett som er i spill.
+ * All regellogikk ligger i core/game/. Denne filen holder bare rede på hvilken
+ * økt som er i gang, om notatmodus er på, og hvilket klokkeslett vi tegner ut.
  * React context med useReducer er nok her, og det slipper en ekstra
  * avhengighet.
  */
 import type { Dispatch, ReactNode } from 'react';
 import { createContext, useContext, useMemo, useReducer } from 'react';
-import type { Board } from '../../core/game/engine.ts';
+import { BoardGenerationError, generateBoard } from '../../core/game/engine.ts';
+import type { ErrorMode } from '../../core/game/scoring.ts';
+import type { Session } from '../../core/game/session.ts';
 import {
-  BoardGenerationError,
-  cellAt,
-  clearCell,
-  fillWithSolution,
-  generateBoard,
-  setValue,
-  toggleNote,
-} from '../../core/game/engine.ts';
+  checkBoard,
+  clearActive,
+  focusCell,
+  isCellLocked,
+  startSession,
+  submitValue,
+  takeHint,
+  toggleActiveNote,
+} from '../../core/game/session.ts';
+import { cellAt } from '../../core/game/engine.ts';
 import type { BoardDifficulty } from '../../core/sudoku/generate.ts';
 import type { BoardSize } from '../../core/sudoku/grid.ts';
 import type { Difficulty, Topic } from '../../core/tasks/types.ts';
@@ -28,19 +32,14 @@ export interface Settings {
   topics: readonly Topic[];
   taskDifficulty: Difficulty;
   boardDifficulty: BoardDifficulty;
+  mode: ErrorMode;
   /** Tom streng betyr at vi trekker en tilfeldig seed ved start. */
   seed: string;
 }
 
-export interface Selection {
-  row: number;
-  col: number;
-}
-
 export interface GameState {
-  board: Board | null;
+  session: Session | null;
   settings: Settings;
-  selected: Selection | null;
   noteMode: boolean;
   error: string | null;
 }
@@ -50,27 +49,23 @@ export const DEFAULT_SETTINGS: Settings = {
   topics: ALL_TOPICS,
   taskDifficulty: 3,
   boardDifficulty: 2,
+  mode: 'rolig',
   seed: '',
 };
 
 export type GameAction =
-  | { type: 'start'; settings: Settings }
+  | { type: 'start'; settings: Settings; now: number }
   | { type: 'avslutt' }
-  | { type: 'velg'; selection: Selection }
-  | { type: 'flytt'; dRow: number; dCol: number }
-  | { type: 'skriv'; value: number }
-  | { type: 'tøm' }
+  | { type: 'velg'; row: number; col: number; now: number }
+  | { type: 'flytt'; dRow: number; dCol: number; now: number }
+  | { type: 'skriv'; value: number; now: number }
+  | { type: 'tøm'; now: number }
   | { type: 'notatmodus' }
-  | { type: 'avslør' };
+  | { type: 'hint' }
+  | { type: 'sjekk'; now: number };
 
 function randomSeed(): string {
   return Math.random().toString(36).slice(2, 10);
-}
-
-/** Første celle som ikke er låst, slik at markøren starter et nyttig sted. */
-function firstOpenCell(board: Board): Selection | null {
-  const cell = board.cells.find((candidate) => !candidate.given);
-  return cell === undefined ? null : { row: cell.row, col: cell.col };
 }
 
 function clamp(value: number, max: number): number {
@@ -80,6 +75,8 @@ function clamp(value: number, max: number): number {
 }
 
 function reducer(state: GameState, action: GameAction): GameState {
+  const session = state.session;
+
   switch (action.type) {
     case 'start': {
       const seed = action.settings.seed.trim() === '' ? randomSeed() : action.settings.seed.trim();
@@ -92,9 +89,8 @@ function reducer(state: GameState, action: GameAction): GameState {
           seed,
         });
         return {
-          board,
+          session: startSession({ board, mode: action.settings.mode, now: action.now }),
           settings: { ...action.settings, seed },
-          selected: firstOpenCell(board),
           noteMode: false,
           error: null,
         };
@@ -103,59 +99,62 @@ function reducer(state: GameState, action: GameAction): GameState {
           error instanceof BoardGenerationError
             ? error.message
             : `Uventet feil under brettbygging: ${String(error)}`;
-        return { ...state, board: null, settings: action.settings, error: message };
+        return { ...state, session: null, settings: action.settings, error: message };
       }
     }
 
     case 'avslutt':
-      return { ...state, board: null, selected: null, error: null };
+      return { ...state, session: null, error: null };
 
     case 'velg':
-      return { ...state, selected: action.selection };
+      if (session === null) return state;
+      return { ...state, session: focusCell(session, action.row, action.col, action.now) };
 
     case 'flytt': {
-      if (state.board === null) return state;
-      const max = state.board.size - 1;
-      const from = state.selected ?? { row: 0, col: 0 };
+      if (session === null) return state;
+      const max = session.board.size - 1;
+      const from = session.active ?? { row: 0, col: 0 };
       return {
         ...state,
-        selected: {
-          row: clamp(from.row + action.dRow, max),
-          col: clamp(from.col + action.dCol, max),
-        },
+        session: focusCell(
+          session,
+          clamp(from.row + action.dRow, max),
+          clamp(from.col + action.dCol, max),
+          action.now,
+        ),
       };
     }
 
     case 'skriv': {
-      const { board, selected } = state;
-      if (board === null || selected === null) return state;
-      if (action.value < 1 || action.value > board.size) return state;
+      if (session === null || session.active === null) return state;
 
       if (state.noteMode) {
-        return { ...state, board: toggleNote(board, selected.row, selected.col, action.value) };
+        return { ...state, session: toggleActiveNote(session, action.value) };
       }
 
-      // Trykker man samme tall om igjen, tømmes cellen.
-      const current = cellAt(board, selected.row, selected.col);
-      if (current.userValue === action.value) {
-        return { ...state, board: clearCell(board, selected.row, selected.col) };
+      // Trykker man samme tall om igjen, tømmes cellen. Låste og løste celler
+      // rører vi ikke.
+      const cell = cellAt(session.board, session.active.row, session.active.col);
+      if (!isCellLocked(cell) && cell.userValue === action.value) {
+        return { ...state, session: clearActive(session, action.now) };
       }
-      return { ...state, board: setValue(board, selected.row, selected.col, action.value) };
+      return { ...state, session: submitValue(session, action.value, action.now) };
     }
 
-    case 'tøm': {
-      const { board, selected } = state;
-      if (board === null || selected === null) return state;
-      return { ...state, board: clearCell(board, selected.row, selected.col) };
-    }
+    case 'tøm':
+      if (session === null) return state;
+      return { ...state, session: clearActive(session, action.now) };
 
     case 'notatmodus':
       return { ...state, noteMode: !state.noteMode };
 
-    case 'avslør': {
-      if (state.board === null) return state;
-      return { ...state, board: fillWithSolution(state.board) };
-    }
+    case 'hint':
+      if (session === null) return state;
+      return { ...state, session: takeHint(session) };
+
+    case 'sjekk':
+      if (session === null) return state;
+      return { ...state, session: checkBoard(session, action.now) };
 
     default:
       return state;
@@ -163,9 +162,8 @@ function reducer(state: GameState, action: GameAction): GameState {
 }
 
 const initialState: GameState = {
-  board: null,
+  session: null,
   settings: DEFAULT_SETTINGS,
-  selected: null,
   noteMode: false,
   error: null,
 };

@@ -1,12 +1,12 @@
 import type { Board as BoardModel } from '../../core/game/engine.ts';
 import { cellAt, effectiveValue } from '../../core/game/engine.ts';
 import { blockIndexOf } from '../../core/sudoku/grid.ts';
-import type { Selection } from '../state/game.tsx';
+import type { CellRefLike } from '../../core/game/session.ts';
 import { Cell } from './Cell.tsx';
 
 interface BoardProps {
   board: BoardModel;
-  selected: Selection | null;
+  selected: CellRefLike | null;
   onSelect: (row: number, col: number) => void;
 }
 

@@ -52,7 +52,7 @@ export function Setup({ settings, error, dispatch }: SetupProps): React.JSX.Elem
       <form
         onSubmit={(event) => {
           event.preventDefault();
-          dispatch({ type: 'start', settings: draft });
+          dispatch({ type: 'start', settings: draft, now: Date.now() });
         }}
       >
         <fieldset>
@@ -112,6 +112,28 @@ export function Setup({ settings, error, dispatch }: SetupProps): React.JSX.Elem
               {BOARD_LABEL[level]}
             </label>
           ))}
+        </fieldset>
+
+        <fieldset>
+          <legend>Feilmodus</legend>
+          <label>
+            <input
+              type="radio"
+              name="modus"
+              checked={draft.mode === 'rolig'}
+              onChange={() => setDraft({ ...draft, mode: 'rolig' })}
+            />
+            rolig — feil vises først når du trykker sjekk, og koster ikke liv
+          </label>
+          <label>
+            <input
+              type="radio"
+              name="modus"
+              checked={draft.mode === 'streng'}
+              onChange={() => setDraft({ ...draft, mode: 'streng' })}
+            />
+            streng — feil markeres med én gang og koster ett liv
+          </label>
         </fieldset>
 
         <fieldset>

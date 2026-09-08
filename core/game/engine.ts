@@ -110,13 +110,24 @@ export function conflicts(board: Board): ValidationResult {
  * spilleren ber om en sjekk.
  */
 export function refreshStatuses(board: Board, markConflicts = true): Board {
-  const conflicted = new Set<number>();
-  if (markConflicts) {
-    for (const ref of conflicts(board).cells) {
-      conflicted.add(cellIndex(board.size, ref.row, ref.col));
-    }
-  }
+  return applyStatuses(board, markConflicts ? conflictIndices(board) : new Set<number>());
+}
 
+/** Indeksene til cellene som bryter en sudokuregel akkurat nå. */
+export function conflictIndices(board: Board): Set<number> {
+  const conflicted = new Set<number>();
+  for (const ref of conflicts(board).cells) {
+    conflicted.add(cellIndex(board.size, ref.row, ref.col));
+  }
+  return conflicted;
+}
+
+/**
+ * Setter status på hver celle ut fra en ferdig liste over celler som skal
+ * markeres som feil. Spilløkten bruker denne direkte, siden den også regner
+ * svar som avviker fra fasiten som feil, ikke bare regelbrudd.
+ */
+export function applyStatuses(board: Board, conflicted: ReadonlySet<number>): Board {
   const cells = board.cells.map((cell, index): Cell => {
     let status: CellStatus;
     if (cell.given) {
