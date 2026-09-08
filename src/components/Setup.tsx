@@ -11,6 +11,7 @@ interface SetupProps {
   settings: Settings;
   error: string | null;
   dispatch: Dispatch<GameAction>;
+  onShowStats: () => void;
 }
 
 const DIFFICULTIES: readonly Difficulty[] = [1, 2, 3];
@@ -28,7 +29,12 @@ const BOARD_LABEL: Readonly<Record<BoardDifficulty, string>> = {
   3: '3 — mange hull',
 };
 
-export function Setup({ settings, error, dispatch }: SetupProps): React.JSX.Element {
+export function Setup({
+  settings,
+  error,
+  dispatch,
+  onShowStats,
+}: SetupProps): React.JSX.Element {
   const [draft, setDraft] = useState<Settings>(settings);
 
   const toggleTopic = (topic: Topic): void => {
@@ -157,9 +163,14 @@ export function Setup({ settings, error, dispatch }: SetupProps): React.JSX.Elem
 
         {error !== null && <p className="feilmelding">{error}</p>}
 
-        <button type="submit" className="start" disabled={impossible}>
-          Start
-        </button>
+        <div className="startknapper">
+          <button type="submit" className="start" disabled={impossible}>
+            Start
+          </button>
+          <button type="button" onClick={onShowStats}>
+            Statistikk
+          </button>
+        </div>
       </form>
     </div>
   );

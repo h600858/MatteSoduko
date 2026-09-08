@@ -1,6 +1,7 @@
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { BrowserWindow, app, shell } from 'electron';
+import { BrowserWindow, app, ipcMain, shell } from 'electron';
+import { readProgressFile, writeProgressFile } from './progress-file.ts';
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -52,8 +53,24 @@ function createWindow(): void {
   });
 }
 
+/**
+ * Broen til fremdriftsfilen. To navngitte kall, ikke generell filtilgang.
+ * Innholdet valideres av Zod-skjemaet i renderer-en før det brukes.
+ */
+function registerProgressHandlers(): void {
+  ipcMain.handle('fremdrift:les', async (): Promise<string | null> => readProgressFile());
+
+  ipcMain.handle('fremdrift:skriv', async (_event, contents: unknown): Promise<void> => {
+    if (typeof contents !== 'string') {
+      throw new Error('fremdrift:skriv forventet en streng');
+    }
+    await writeProgressFile(contents);
+  });
+}
+
 app.whenReady().then(
   () => {
+    registerProgressHandlers();
     createWindow();
 
     app.on('activate', () => {

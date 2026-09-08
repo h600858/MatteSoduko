@@ -450,13 +450,15 @@ export function unsolvedCount(session: Session): number {
 export interface TaskTiming {
   templateId: string;
   answer: number;
+  /** Total tid brukt i cellen, også når den ikke ble løst. */
+  elapsedMs: number;
   solvedMs: number | null;
   hintLevel: HintLevel;
   wrongAttempts: number;
   solved: boolean;
 }
 
-export function taskTimings(session: Session): TaskTiming[] {
+export function taskTimings(session: Session, now: number): TaskTiming[] {
   const timings: TaskTiming[] = [];
   for (const cell of session.board.cells) {
     if (cell.given || cell.task === null) continue;
@@ -464,6 +466,7 @@ export function taskTimings(session: Session): TaskTiming[] {
     timings.push({
       templateId: cell.task.templateId,
       answer: cell.solution,
+      elapsedMs: cellElapsedMs(session, cell.row, cell.col, now),
       solvedMs: progress.solvedMs,
       hintLevel: progress.hintLevel,
       wrongAttempts: progress.wrongAttempts,

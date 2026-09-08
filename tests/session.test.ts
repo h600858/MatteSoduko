@@ -384,7 +384,7 @@ describe('spilløkt: fullføring', () => {
   it('leverer tid per oppgave til statistikken', () => {
     const s0 = session('statistikk', 'rolig', 0);
     const ferdig = playThrough(s0, 3_000);
-    const timings = taskTimings(ferdig);
+    const timings = taskTimings(ferdig, 999_999);
 
     expect(timings).toHaveLength(countTasks(s0.board));
     for (const timing of timings) {

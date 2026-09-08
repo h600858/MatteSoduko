@@ -104,6 +104,119 @@ button {
   margin: 0 0 16px;
 }
 
+.startknapper {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.startknapper button[type='button'] {
+  padding: 10px 16px;
+  border: 1px solid var(--ramme);
+  border-radius: 4px;
+  background: var(--flate);
+}
+
+/* ---------- Statistikk ---------- */
+
+.statistikk {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.statistikktopp {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.statistikktopp h1 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.statistikktopp button {
+  padding: 8px 16px;
+  border: 1px solid var(--ramme);
+  border-radius: 4px;
+  background: var(--flate);
+}
+
+.statistikk h2 {
+  font-size: 16px;
+  margin: 28px 0 4px;
+}
+
+.noekkeltall {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0;
+}
+
+.noekkeltall > div {
+  flex: 1 1 140px;
+  background: var(--flate);
+  border: 1px solid var(--ramme);
+  border-radius: 4px;
+  padding: 10px 14px;
+}
+
+.noekkeltall dt {
+  font-size: 12px;
+  color: var(--tekst-dempet);
+}
+
+.noekkeltall dd {
+  margin: 4px 0 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+/* Brede tabeller skal rulle for seg selv, ikke dytte siden sidelengs. */
+.tabellramme {
+  overflow-x: auto;
+  background: var(--flate);
+  border: 1px solid var(--ramme);
+  border-radius: 4px;
+  margin-top: 8px;
+}
+
+.statistikk table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+}
+
+.statistikk th,
+.statistikk td {
+  text-align: left;
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--flate-dempet);
+  white-space: nowrap;
+}
+
+.statistikk th {
+  font-size: 12px;
+  color: var(--tekst-dempet);
+  font-weight: 600;
+}
+
+.statistikk tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.statistikk td.ok {
+  color: var(--ok);
+}
+
+.statistikk td.feil {
+  color: var(--feil);
+}
+
 /* ---------- Spillskjerm ---------- */
 
 .app {

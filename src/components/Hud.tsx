@@ -21,9 +21,16 @@ interface HudProps {
   noteMode: boolean;
   now: number;
   dispatch: Dispatch<GameAction>;
+  onShowStats: () => void;
 }
 
-export function Hud({ session, noteMode, now, dispatch }: HudProps): React.JSX.Element {
+export function Hud({
+  session,
+  noteMode,
+  now,
+  dispatch,
+  onShowStats,
+}: HudProps): React.JSX.Element {
   const { board, score, mode, config, status } = session;
   const remaining = unsolvedCount(session);
   const cellMs =
@@ -89,6 +96,9 @@ export function Hud({ session, noteMode, now, dispatch }: HudProps): React.JSX.E
         )}
         <button type="button" onClick={() => dispatch({ type: 'avslutt' })}>
           Nytt brett
+        </button>
+        <button type="button" onClick={onShowStats}>
+          Statistikk
         </button>
       </div>
 
