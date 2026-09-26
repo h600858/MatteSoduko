@@ -4,13 +4,14 @@ import type { BoardSize } from '../../core/sudoku/grid.ts';
 import { BOARD_SIZES } from '../../core/sudoku/grid.ts';
 import type { Difficulty, Topic } from '../../core/tasks/types.ts';
 import { ALL_TOPICS } from '../../core/tasks/types.ts';
-import type { GameAction, Settings } from '../state/game.tsx';
-import type { Dispatch } from 'react';
+import type { Settings } from '../state/game.tsx';
 
 interface SetupProps {
   settings: Settings;
   error: string | null;
-  dispatch: Dispatch<GameAction>;
+  /** Antall maler vi har statistikk for. Styrer om bryteren er verdt å bruke. */
+  knownTemplates: number;
+  onStart: (settings: Settings) => void;
   onShowStats: () => void;
 }
 
@@ -32,7 +33,8 @@ const BOARD_LABEL: Readonly<Record<BoardDifficulty, string>> = {
 export function Setup({
   settings,
   error,
-  dispatch,
+  knownTemplates,
+  onStart,
   onShowStats,
 }: SetupProps): React.JSX.Element {
   const [draft, setDraft] = useState<Settings>(settings);
@@ -58,7 +60,7 @@ export function Setup({
       <form
         onSubmit={(event) => {
           event.preventDefault();
-          dispatch({ type: 'start', settings: draft, now: Date.now() });
+          onStart(draft);
         }}
       >
         <fieldset>
@@ -143,6 +145,23 @@ export function Setup({
         </fieldset>
 
         <fieldset>
+          <legend>Oppgavevalg</legend>
+          <label>
+            <input
+              type="checkbox"
+              checked={draft.adaptive}
+              onChange={() => setDraft({ ...draft, adaptive: !draft.adaptive })}
+            />
+            tilpass etter statistikken min
+          </label>
+          <p className="hjelpetekst">
+            {knownTemplates === 0
+              ? 'Ingen statistikk ennå, så alle maler trekkes likt uansett. Etter noen brett vektes maler du bommer på eller bruker lang tid på, oftere.'
+              : `Maler du bommer på eller bruker lang tid på trekkes oftere. Bygger på ${knownTemplates} maler du har spilt. Slå av for å få det samme brettet av en seed uavhengig av statistikken.`}
+          </p>
+        </fieldset>
+
+        <fieldset>
           <legend>Seed</legend>
           <input
             type="text"
@@ -150,7 +169,10 @@ export function Setup({
             placeholder="tom = tilfeldig"
             onChange={(event) => setDraft({ ...draft, seed: event.target.value })}
           />
-          <p className="hjelpetekst">Samme seed gir alltid samme brett og samme oppgaver.</p>
+          <p className="hjelpetekst">
+            Samme seed gir alltid samme sudoku. Med tilpasset oppgavevalg kan oppgavene i
+            cellene endre seg etter hvert som statistikken din vokser.
+          </p>
         </fieldset>
 
         {impossible && (

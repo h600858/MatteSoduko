@@ -1,13 +1,18 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { templateWeights } from '../core/game/adaptive.ts';
 import type { Progress } from '../core/game/progress.ts';
 import { emptyProgress, recordSession, sessionRecord } from '../core/game/progress.ts';
+import { allTemplates } from '../core/tasks/registry.ts';
 import { Board } from './components/Board.tsx';
 import { Hud } from './components/Hud.tsx';
 import { Setup } from './components/Setup.tsx';
 import { Stats } from './components/Stats.tsx';
 import { TaskPanel } from './components/TaskPanel.tsx';
+import type { Settings } from './state/game.tsx';
 import { useGame, useGameDispatch } from './state/game.tsx';
 import { readProgress, writeProgress } from './state/storage.ts';
+
+const TEMPLATE_IDS = allTemplates.map((template) => template.id);
 
 export function App(): React.JSX.Element {
   const state = useGame();
@@ -67,6 +72,20 @@ export function App(): React.JSX.Element {
 
   const closeStats = useCallback(() => setShowStats(false), []);
 
+  // Den adaptive vektingen: statistikken gjøres om til vekter registeret
+  // allerede tar imot. Regnes bare om når fremdriften faktisk har endret seg.
+  const weights = useMemo(
+    () => templateWeights(progress, { templateIds: TEMPLATE_IDS }),
+    [progress],
+  );
+
+  const startBoard = useCallback(
+    (settings: Settings) => {
+      dispatch({ type: 'start', settings, now: Date.now(), weights });
+    },
+    [dispatch, weights],
+  );
+
   // Tastaturet er hovedinput. Lytteren ligger på vinduet, ikke på cellene, slik
   // at markøren ikke kan gå tapt i en klikkbar knapp.
   useEffect(() => {
@@ -125,7 +144,14 @@ export function App(): React.JSX.Element {
   }, [session, dispatch, showStats]);
 
   if (showStats) {
-    return <Stats progress={progress} warning={progressWarning} onClose={closeStats} />;
+    return (
+      <Stats
+        progress={progress}
+        warning={progressWarning}
+        weights={weights}
+        onClose={closeStats}
+      />
+    );
   }
 
   if (session === null) {
@@ -133,7 +159,8 @@ export function App(): React.JSX.Element {
       <Setup
         settings={state.settings}
         error={state.error}
-        dispatch={dispatch}
+        knownTemplates={Object.keys(progress.templates).length}
+        onStart={startBoard}
         onShowStats={() => setShowStats(true)}
       />
     );

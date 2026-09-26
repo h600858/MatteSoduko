@@ -26,7 +26,7 @@ core/     ren TypeScript, ingen import fra React eller Electron
   rng.ts        seedbar generator
   tasks/        oppgavemaler, register og mathjs-verifisering
   sudoku/       generering, løser og validering
-  game/         motor, spilløkt, poengregler og fremdrift (adaptiv vekting i M7)
+  game/         motor, spilløkt, poengregler, fremdrift og adaptiv vekting
 electron/  hovedprosess (ESM) og preload (CJS, sandkasse på)
 src/       React-UI. All styling ligger i styles.css og er ment å kastes.
 tests/     vitest
@@ -70,5 +70,5 @@ trengs ingen egen kjøretidsavhengighet for TypeScript.
 - [x] **M4** Electron-skall og UI
 - [x] **M5** Poeng, liv, hint, timer
 - [x] **M6** Persistens og statistikk
-- [ ] **M7** Adaptiv vekting
+- [x] **M7** Adaptiv vekting
 - [ ] **M8** Pakking

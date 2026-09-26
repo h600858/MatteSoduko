@@ -525,3 +525,13 @@ button {
   color: var(--tekst-dempet);
   font-size: 12px;
 }
+
+/* Maler den adaptive vektingen løfter eller demper tydelig. */
+.statistikk td.vekt-opp {
+  color: var(--feil);
+  font-weight: 700;
+}
+
+.statistikk td.vekt-ned {
+  color: var(--tekst-dempet);
+}

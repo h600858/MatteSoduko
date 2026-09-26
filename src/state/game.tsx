@@ -33,6 +33,11 @@ export interface Settings {
   taskDifficulty: Difficulty;
   boardDifficulty: BoardDifficulty;
   mode: ErrorMode;
+  /**
+   * Når den er på, vektes oppgavevalget etter statistikken din. Da avhenger
+   * oppgavene av hva du har spilt før, ikke bare av seeden.
+   */
+  adaptive: boolean;
   /** Tom streng betyr at vi trekker en tilfeldig seed ved start. */
   seed: string;
 }
@@ -50,11 +55,18 @@ export const DEFAULT_SETTINGS: Settings = {
   taskDifficulty: 3,
   boardDifficulty: 2,
   mode: 'rolig',
+  adaptive: true,
   seed: '',
 };
 
 export type GameAction =
-  | { type: 'start'; settings: Settings; now: number }
+  | {
+      type: 'start';
+      settings: Settings;
+      now: number;
+      /** Fra den adaptive vektingen. Utelatt gir likt trekk mellom malene. */
+      weights?: ReadonlyMap<string, number>;
+    }
   | { type: 'avslutt' }
   | { type: 'velg'; row: number; col: number; now: number }
   | { type: 'flytt'; dRow: number; dCol: number; now: number }
@@ -87,6 +99,9 @@ function reducer(state: GameState, action: GameAction): GameState {
           taskDifficulty: action.settings.taskDifficulty,
           boardDifficulty: action.settings.boardDifficulty,
           seed,
+          ...(action.settings.adaptive && action.weights !== undefined
+            ? { weights: action.weights }
+            : {}),
         });
         return {
           session: startSession({ board, mode: action.settings.mode, now: action.now }),
