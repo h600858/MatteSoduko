@@ -13,7 +13,11 @@
     "typecheck": "tsc --noEmit",
     "demo:tasks": "node --no-warnings=ExperimentalWarning scripts/demo-tasks.ts",
     "demo:brett": "node --no-warnings=ExperimentalWarning scripts/demo-board.ts",
-    "dev:web": "vite --mode web"
+    "dev:web": "vite --mode web",
+    "ikon": "node --no-warnings=ExperimentalWarning scripts/lag-ikon.ts",
+    "pack": "npm run build && electron-builder --dir",
+    "dist": "npm run build && electron-builder --win",
+    "dist:mac": "npm run build && electron-builder --mac"
   },
   "dependencies": {
     "katex": "^0.18.7",
@@ -28,10 +32,15 @@
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "^5.2.0",
     "electron": "^44.2.0",
+    "electron-builder": "^26.15.3",
     "typescript": "^5.9.3",
     "vite": "^7.3.6",
     "vite-plugin-electron": "^1.1.2",
     "vitest": "^3.2.4"
   },
-  "main": "dist-electron/main.mjs"
+  "main": "dist-electron/main.mjs",
+  "author": {
+    "name": "Eirik Aasen",
+    "email": "eirikaasen00@gmail.com"
+  }
 }

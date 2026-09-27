@@ -1,0 +1,68 @@
+# Pakking av MatteSudoku.
+#
+# Appen er offline og har ingen kjøretidsavhengigheter: Vite bundler alt UI-et
+# og hele core/ inn i dist/, og hovedprosessen inn i dist-electron/. Derfor
+# listes filene eksplisitt, og node_modules holdes utenfor. Det tar installeren
+# fra flere hundre megabyte ned til det Electron selv veier.
+
+appId: no.hvl.mattesudoku
+productName: MatteSudoku
+copyright: Copyright © 2026 Eirik Aasen
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - dist/**/*
+  - dist-electron/**/*
+  - package.json
+  # electron-builder tar med alt under dependencies som standard. Her er de
+  # allerede bundlet inn i dist/, og hovedprosessen importerer bare electron og
+  # node-innebygde moduler, så kopiene er ren dødvekt.
+  - '!node_modules/**/*'
+
+# Ingenting i dist/ leses fra disk utenfor asar-arkivet.
+asar: true
+
+# Appen har ingen nettverkskall og skal ikke se etter oppdateringer.
+publish: null
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: build/icon.png
+  # Usignert. Windows SmartScreen vil advare første gang, se README.
+  signAndEditExecutable: true
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: MatteSudoku
+  artifactName: MatteSudoku-${version}-oppsett-${arch}.${ext}
+  deleteAppDataOnUninstall: false
+
+mac:
+  target:
+    - target: dmg
+      arch:
+        - arm64
+        - x64
+  icon: build/icon.png
+  category: public.app-category.education
+  # Usignert og uten notarisering. Må bygges på macOS.
+  identity: null
+
+dmg:
+  artifactName: MatteSudoku-${version}-${arch}.${ext}
+
+linux:
+  target:
+    - AppImage
+  icon: build/icon.png
+  category: Education
