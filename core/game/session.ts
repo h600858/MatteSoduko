@@ -20,7 +20,6 @@ import type { ErrorMode, HintLevel, ScoreState, ScoringConfig } from './scoring.
 import {
   DEFAULT_SCORING,
   awardCell,
-  awardCompletion,
   chargeHint,
   chargeMistake,
   createScoreState,
@@ -258,21 +257,16 @@ export function submitValue(session: Session, value: number, now: number): Sessi
       solvedMs: elapsedMs,
     });
 
-    let score = awardCell(session.score, session.config, {
+    // Poengsummen i økten er råpoengene: det spilleren tjener inn celle for
+    // celle. Fullførtbonus, tidsbonus og nivåmultiplikator legges på først når
+    // brettet bankes inn på totalen, i boardAward().
+    const score = awardCell(session.score, session.config, {
       seconds: elapsedMs / 1000,
       hintLevel: progressAfter.hintLevel,
     });
 
     const solved = isSolved(board);
     const finishedAt = solved ? now : null;
-    if (solved) {
-      score = awardCompletion(
-        score,
-        session.config,
-        Math.max(0, now - session.startedAt) / 1000,
-        countTasks(session.board),
-      );
-    }
 
     const showErrors = session.mode === 'streng';
     return {

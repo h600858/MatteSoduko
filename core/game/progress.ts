@@ -11,10 +11,11 @@
 import { z } from 'zod';
 import type { Level } from '../tasks/types.ts';
 import { LEVELS } from '../tasks/types.ts';
+import { boardAward } from './scoring.ts';
 import type { Session, TaskTiming } from './session.ts';
 import { boardElapsedMs, countTasks, taskTimings } from './session.ts';
 
-export const PROGRESS_VERSION = 2;
+export const PROGRESS_VERSION = 3;
 
 /**
  * Versjon 1 lagret oppgavenivået som tallet 1, 2 eller 3. Versjon 2 lagrer
@@ -65,8 +66,25 @@ export const boardResultSchema = z.object({
 
 export type BoardResult = z.infer<typeof boardResultSchema>;
 
+/**
+ * Totalen som samles opp over tid.
+ *
+ * Lagres som egne tall, ikke utledet av brettlista: historikken kappes ved
+ * hundre brett, og da ville en utledet total plutselig begynt å synke.
+ */
+export const lifetimeSchema = z.object({
+  points: z.number().int(),
+  boardsPlayed: z.number().int().nonnegative(),
+  boardsCompleted: z.number().int().nonnegative(),
+  cellsSolved: z.number().int().nonnegative(),
+  msPlayed: z.number().nonnegative(),
+});
+
+export type Lifetime = z.infer<typeof lifetimeSchema>;
+
 export const progressSchema = z.object({
   version: z.literal(PROGRESS_VERSION),
+  lifetime: lifetimeSchema,
   templates: z.record(z.string(), templateStatsSchema),
   /** Nyeste først. */
   boards: z.array(boardResultSchema),
@@ -77,8 +95,17 @@ export type Progress = z.infer<typeof progressSchema>;
 /** Hvor mange brettresultater vi tar vare på. */
 export const MAX_BOARD_HISTORY = 100;
 
+export function emptyLifetime(): Lifetime {
+  return { points: 0, boardsPlayed: 0, boardsCompleted: 0, cellsSolved: 0, msPlayed: 0 };
+}
+
 export function emptyProgress(): Progress {
-  return { version: PROGRESS_VERSION, templates: {}, boards: [] };
+  return {
+    version: PROGRESS_VERSION,
+    lifetime: emptyLifetime(),
+    templates: {},
+    boards: [],
+  };
 }
 
 export interface LoadResult {
@@ -130,7 +157,7 @@ export function loadProgress(raw: unknown): LoadResult {
   return { progress: parsed.data, warning: null };
 }
 
-/** Skjemaet for versjon 1, kun det migreringen trenger for å kjenne den igjen. */
+/** Versjon 1: oppgavenivået var et tall, og totalen fantes ikke. */
 const v1Schema = z.object({
   version: z.literal(1),
   templates: z.record(z.string(), templateStatsSchema),
@@ -141,25 +168,58 @@ const v1Schema = z.object({
   ),
 });
 
+/** Versjon 2: skolenivå på plass, men fortsatt ingen total. */
+const v2Schema = z.object({
+  version: z.literal(2),
+  templates: z.record(z.string(), templateStatsSchema),
+  boards: z.array(boardResultSchema),
+});
+
 /**
- * Løfter en gammel fremdriftsfil til gjeldende versjon.
+ * Løfter en gammel fremdriftsfil til gjeldende versjon, ett steg om gangen.
  *
  * Kjenner den ikke igjen formatet, sendes innholdet videre urørt. Da er det
  * skjemaet som avgjør om det kan brukes, og brukeren får en melding om hva som
  * var galt i stedet for en stille sletting.
  */
 export function migrate(data: unknown): unknown {
-  const v1 = v1Schema.safeParse(data);
-  if (!v1.success) return data;
+  let current: unknown = data;
 
-  return {
-    version: PROGRESS_VERSION,
-    templates: v1.data.templates,
-    boards: v1.data.boards.map((board) => {
-      const { taskDifficulty, ...resten } = board;
-      return { ...resten, level: V1_NIVAA[taskDifficulty] ?? 'middels' };
-    }),
-  };
+  const v1 = v1Schema.safeParse(current);
+  if (v1.success) {
+    current = {
+      version: 2,
+      templates: v1.data.templates,
+      boards: v1.data.boards.map((board) => {
+        const { taskDifficulty, ...resten } = board;
+        return { ...resten, level: V1_NIVAA[taskDifficulty] ?? 'middels' };
+      }),
+    };
+  }
+
+  const v2 = v2Schema.safeParse(current);
+  if (v2.success) {
+    // Totalen fantes ikke før versjon 3. Den beste tilnærmingen er å summere
+    // brettene vi fortsatt har. Har historikken allerede blitt kappet, er noen
+    // gamle poeng tapt, men det er bedre enn å starte på null.
+    current = {
+      version: 3,
+      lifetime: v2.data.boards.reduce<Lifetime>(
+        (sum, board) => ({
+          points: sum.points + board.points,
+          boardsPlayed: sum.boardsPlayed + 1,
+          boardsCompleted: sum.boardsCompleted + (board.completed ? 1 : 0),
+          cellsSolved: sum.cellsSolved + board.solvedCells,
+          msPlayed: sum.msPlayed + board.durationMs,
+        }),
+        emptyLifetime(),
+      ),
+      templates: v2.data.templates,
+      boards: v2.data.boards,
+    };
+  }
+
+  return current;
 }
 
 function emptyStats(lastSeen: string): TemplateStats {
@@ -207,7 +267,13 @@ export function sessionRecord(session: Session, now: number): SessionRecord {
       mode: session.mode,
       level: session.board.level,
       boardDifficulty: session.board.boardDifficulty,
-      points: Math.round(session.score.points),
+      points: boardAward(session.config, {
+        rawPoints: session.score.points,
+        completed: session.status === 'fullført',
+        seconds: boardElapsedMs(session, now) / 1000,
+        taskCount: countTasks(session.board),
+        level: session.board.level,
+      }),
       durationMs: boardElapsedMs(session, now),
       taskCount: countTasks(session.board),
       solvedCells: session.score.solvedCells,
@@ -239,6 +305,13 @@ export function recordSession(progress: Progress, record: SessionRecord): Progre
 
   return {
     version: PROGRESS_VERSION,
+    lifetime: {
+      points: progress.lifetime.points + record.board.points,
+      boardsPlayed: progress.lifetime.boardsPlayed + 1,
+      boardsCompleted: progress.lifetime.boardsCompleted + (record.board.completed ? 1 : 0),
+      cellsSolved: progress.lifetime.cellsSolved + record.board.solvedCells,
+      msPlayed: progress.lifetime.msPlayed + record.board.durationMs,
+    },
     templates,
     boards: [record.board, ...progress.boards].slice(0, MAX_BOARD_HISTORY),
   };
@@ -297,9 +370,9 @@ export interface OverallStats {
 
 export function overallStats(progress: Progress): OverallStats {
   const stats: OverallStats = {
-    boardsPlayed: progress.boards.length,
-    boardsCompleted: progress.boards.filter((board) => board.completed).length,
-    totalPoints: progress.boards.reduce((sum, board) => sum + board.points, 0),
+    boardsPlayed: progress.lifetime.boardsPlayed,
+    boardsCompleted: progress.lifetime.boardsCompleted,
+    totalPoints: progress.lifetime.points,
     bestPoints: null,
     cellsAttempted: 0,
     cellsCorrect: 0,

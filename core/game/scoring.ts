@@ -5,6 +5,8 @@
  * slik at reglene kan justeres og testes uten å røre spillmotoren.
  */
 
+import type { Level } from '../tasks/types.ts';
+
 /** Streng markerer feil med én gang og koster liv. Rolig venter til du sjekker. */
 export type ErrorMode = 'streng' | 'rolig';
 
@@ -153,16 +155,84 @@ export function boardTimeBonus(
   return Math.min(config.maxBoardTimeBonus, Math.round(saved * config.pointsPerSecondSaved));
 }
 
-export function awardCompletion(
-  state: ScoreState,
-  config: ScoringConfig,
-  seconds: number,
-  taskCount: number,
-): ScoreState {
-  return {
-    ...state,
-    points: state.points + config.completionBonus + boardTimeBonus(config, seconds, taskCount),
-  };
+/**
+ * Hvor mye et nivå er verdt.
+ *
+ * Samme antall riktige celler gir flere poeng jo hardere stoffet er.
+ */
+export const LEVEL_MULTIPLIER: Readonly<Record<Level, number>> = {
+  enkel: 1,
+  middels: 1.4,
+  vanskelig: 1.9,
+  ultra: 2.5,
+};
+
+export interface BoardAwardInput {
+  /** Poengene som ble tjent inn underveis, før bonus og multiplikator. */
+  rawPoints: number;
+  /** True bare når hele brettet er løst. */
+  completed: boolean;
+  /** Tid brukt på brettet. */
+  seconds: number;
+  /** Antall celler med oppgave. */
+  taskCount: number;
+  level: Level;
+}
+
+/**
+ * Poengene et ferdigspilt brett legger til på totalen.
+ *
+ * Et halvferdig brett gir det spilleren faktisk tjente inn underveis, altså
+ * omtrent halvparten av celleposengene. Men fullførtbonusen og tidsbonusen
+ * faller bort, så utbyttet blir likevel litt mindre enn halvparten av det et
+ * fullført brett ville gitt. Det er nettopp den forskjellen som gjør det verdt
+ * å spille brettet ferdig.
+ */
+export function boardAward(config: ScoringConfig, input: BoardAwardInput): number {
+  const bonus = input.completed
+    ? config.completionBonus + boardTimeBonus(config, input.seconds, input.taskCount)
+    : 0;
+  return Math.round((input.rawPoints + bonus) * LEVEL_MULTIPLIER[input.level]);
+}
+
+export interface Rank {
+  id: string;
+  label: string;
+  /** Poengsummen som trengs for å nå dette trinnet. */
+  from: number;
+}
+
+/** Trinnene man jobber seg oppover etter hvert som totalen vokser. */
+export const RANKS: readonly Rank[] = [
+  { id: 'nybegynner', label: 'Nybegynner', from: 0 },
+  { id: 'ovet', label: 'Øvet', from: 2_500 },
+  { id: 'god', label: 'God', from: 10_000 },
+  { id: 'sterk', label: 'Sterk', from: 25_000 },
+  { id: 'veteran', label: 'Veteran', from: 60_000 },
+  { id: 'mester', label: 'Mester', from: 120_000 },
+];
+
+export function rankFor(points: number): Rank {
+  let funnet = RANKS[0] as Rank;
+  for (const rank of RANKS) {
+    if (points >= rank.from) funnet = rank;
+  }
+  return funnet;
+}
+
+/** Neste trinn, eller null når man står på det høyeste. */
+export function nextRank(points: number): Rank | null {
+  return RANKS.find((rank) => rank.from > points) ?? null;
+}
+
+/** Hvor langt man er kommet mot neste trinn, 0 til 1. */
+export function rankProgress(points: number): number {
+  const nå = rankFor(points);
+  const neste = nextRank(points);
+  if (neste === null) return 1;
+  const spenn = neste.from - nå.from;
+  if (spenn <= 0) return 1;
+  return Math.min(1, Math.max(0, (points - nå.from) / spenn));
 }
 
 /** Slutt i streng modus: livene er brukt opp. */

@@ -36,7 +36,7 @@ export function TopBar({ onShowStats, onNewBoard }: TopBarProps): React.JSX.Elem
       )}
       {onShowStats !== null && (
         <button type="button" className="toppknapp" onClick={onShowStats}>
-          Statistikk
+          Profil
         </button>
       )}
     </header>

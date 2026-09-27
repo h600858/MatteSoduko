@@ -1,13 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { templateWeights } from '../core/game/adaptive.ts';
 import type { Progress } from '../core/game/progress.ts';
-import { emptyProgress, recordSession, sessionRecord } from '../core/game/progress.ts';
+import {
+  emptyProgress,
+  recordSession,
+  sessionRecord,
+  wasAttempted,
+} from '../core/game/progress.ts';
+import type { Session } from '../core/game/session.ts';
 import { allTemplates } from '../core/tasks/registry.ts';
 import { Board } from './components/Board.tsx';
 import { Hud } from './components/Hud.tsx';
 import { Mascot } from './components/Mascot.tsx';
 import { Setup } from './components/Setup.tsx';
-import { Stats } from './components/Stats.tsx';
+import { Profile } from './components/Profile.tsx';
 import { TaskPanel } from './components/TaskPanel.tsx';
 import { TopBar } from './components/TopBar.tsx';
 import type { Settings } from './state/game.tsx';
@@ -26,9 +32,11 @@ export function App(): React.JSX.Element {
   const [progressWarning, setProgressWarning] = useState<string | null>(null);
   const [showStats, setShowStats] = useState(false);
 
-  // Identifiserer økten vi allerede har lagret, slik at et ferdig brett ikke
-  // føres inn i statistikken to ganger når komponenten tegnes på nytt.
-  const savedSession = useRef<string | null>(null);
+  // Øktene vi allerede har banket inn, slik at et brett ikke føres inn i
+  // statistikken to ganger når komponenten tegnes på nytt.
+  const bankede = useRef(new Set<string>());
+  /** Forrige økt, så et brett som forlates rekker å bli lagret. */
+  const forrigeØkt = useRef<Session | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -53,24 +61,50 @@ export function App(): React.JSX.Element {
     return () => clearInterval(id);
   }, [running]);
 
-  // Lagrer et ferdigspilt brett. Også tapte brett telles: de sier like mye om
-  // hvilke maler som er vanskelige.
-  useEffect(() => {
-    if (session === null || session.status === 'spiller') return;
+  /**
+   * Banker inn et brett. Også tapte og halvferdige brett telles: et uferdig
+   * brett gir det spilleren faktisk tjente inn, bare uten fullførtbonusen.
+   */
+  const bankInn = useCallback((økt: Session | null): void => {
+    if (økt === null) return;
 
-    const key = `${session.board.seed}:${session.startedAt}`;
-    if (savedSession.current === key) return;
-    savedSession.current = key;
+    const key = `${økt.board.seed}:${økt.startedAt}`;
+    if (bankede.current.has(key)) return;
 
-    const stamp = session.finishedAt ?? Date.now();
+    const stamp = økt.finishedAt ?? Date.now();
+    const record = sessionRecord(økt, stamp);
+
+    // Et brett spilleren aldri rakk å røre skal ikke inn i statistikken.
+    if (record.board.solvedCells === 0 && !record.timings.some(wasAttempted)) return;
+
+    bankede.current.add(key);
     setProgress((current) => {
-      const next = recordSession(current, sessionRecord(session, stamp));
+      const next = recordSession(current, record);
       void writeProgress(next).then((error) => {
         if (error !== null) setProgressWarning(error);
       });
       return next;
     });
-  }, [session]);
+  }, []);
+
+  // Et brett som er ferdigspilt bankes inn med én gang.
+  useEffect(() => {
+    if (session !== null && session.status !== 'spiller') bankInn(session);
+  }, [session, bankInn]);
+
+  // Et brett som forlates halvveis bankes inn før det forsvinner. Uten dette
+  // ville alt arbeidet vært borte i det man trykker Nytt brett.
+  useEffect(() => {
+    const forrige = forrigeØkt.current;
+    const samme =
+      forrige !== null &&
+      session !== null &&
+      forrige.board.seed === session.board.seed &&
+      forrige.startedAt === session.startedAt;
+
+    if (forrige !== null && !samme) bankInn(forrige);
+    forrigeØkt.current = session;
+  }, [session, bankInn]);
 
   const closeStats = useCallback(() => setShowStats(false), []);
 
@@ -147,7 +181,7 @@ export function App(): React.JSX.Element {
 
   // Toppbaren og maskoten staar uansett hvilken skjerm som vises.
   const skjerm = showStats ? (
-    <Stats progress={progress} warning={progressWarning} weights={weights} onClose={closeStats} />
+    <Profile progress={progress} warning={progressWarning} weights={weights} onClose={closeStats} />
   ) : session === null ? (
     <Setup
       settings={state.settings}

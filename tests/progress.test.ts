@@ -182,6 +182,12 @@ describe('migrering fra versjon 1', () => {
     expect(result.progress.boards).toHaveLength(2);
   });
 
+  it('bygger en total av brettene som fantes i den gamle fila', () => {
+    const { progress } = loadProgress(JSON.stringify(v1));
+    expect(progress.lifetime.boardsPlayed).toBe(2);
+    expect(progress.lifetime.points).toBe(boardResult().points * 2);
+  });
+
   it('oversetter det gamle tallnivået til et skolenivå', () => {
     const { progress } = loadProgress(JSON.stringify(v1));
     // Alt innhold i versjon 1 var MAT102-stoff.
@@ -301,6 +307,70 @@ describe('recordSession', () => {
     const kopi = JSON.parse(JSON.stringify(før)) as Progress;
     recordSession(før, { timings: [timing()], board: boardResult() });
     expect(før).toEqual(kopi);
+  });
+});
+
+describe('totalen som samles opp', () => {
+  it('starter på null', () => {
+    expect(emptyProgress().lifetime).toEqual({
+      points: 0,
+      boardsPlayed: 0,
+      boardsCompleted: 0,
+      cellsSolved: 0,
+      msPlayed: 0,
+    });
+  });
+
+  it('legger sammen poeng, brett, celler og tid', () => {
+    let progress = recordSession(emptyProgress(), {
+      timings: [timing()],
+      board: boardResult({ points: 800, solvedCells: 5, durationMs: 60_000 }),
+    });
+    progress = recordSession(progress, {
+      timings: [timing()],
+      board: boardResult({
+        points: 300,
+        solvedCells: 2,
+        durationMs: 30_000,
+        completed: false,
+      }),
+    });
+
+    expect(progress.lifetime).toEqual({
+      points: 1100,
+      boardsPlayed: 2,
+      boardsCompleted: 1,
+      cellsSolved: 7,
+      msPlayed: 90_000,
+    });
+  });
+
+  it('mister ikke poeng når bretthistorikken kappes', () => {
+    // Dette er hele grunnen til at totalen lagres for seg. Ble den utledet av
+    // brettlista, ville den begynt å synke så snart historikken gikk full.
+    let progress = emptyProgress();
+    const antall = MAX_BOARD_HISTORY + 40;
+    for (let i = 0; i < antall; i += 1) {
+      progress = recordSession(progress, {
+        timings: [],
+        board: boardResult({ points: 100, seed: `brett-${i}` }),
+      });
+    }
+
+    expect(progress.boards).toHaveLength(MAX_BOARD_HISTORY);
+    expect(progress.lifetime.points).toBe(antall * 100);
+    expect(progress.lifetime.boardsPlayed).toBe(antall);
+    expect(overallStats(progress).totalPoints).toBe(antall * 100);
+  });
+
+  it('overlever lagring og lesing', () => {
+    const progress = recordSession(emptyProgress(), {
+      timings: [timing()],
+      board: boardResult({ points: 1234 }),
+    });
+    const tilbake = loadProgress(JSON.stringify(progress));
+    expect(tilbake.warning).toBeNull();
+    expect(tilbake.progress.lifetime).toEqual(progress.lifetime);
   });
 });
 

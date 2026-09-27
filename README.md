@@ -145,4 +145,4 @@ Ikonet i `build/icon.png` er en plassholder som genereres av
 - [x] **M8** Pakking
 - [x] **M9** Designløft og maskot
 - [x] **M10** Fire vanskelighetsnivåer og datadrevet temaregister
-- [ ] **M11** Poeng over tid og profilside
+- [x] **M11** Poeng over tid og profilside

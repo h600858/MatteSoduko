@@ -891,3 +891,95 @@ button {
     font-size: 13px;
   }
 }
+
+/* ---------- Karrierekort på profilen ---------- */
+
+.karriere {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: center;
+  background: var(--hvit);
+  border-radius: var(--radius);
+  box-shadow: var(--skygge);
+  padding: 20px 26px;
+  margin-bottom: 18px;
+}
+
+.karrieretall {
+  display: flex;
+  flex-direction: column;
+  padding-right: 24px;
+  border-right: var(--kant);
+}
+
+.karrierepoeng {
+  font-size: 40px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--merke-700);
+  letter-spacing: -0.03em;
+}
+
+.karrieremerke {
+  font-size: 12px;
+  color: var(--grå-600);
+  margin-top: 4px;
+}
+
+.karrierenivaa {
+  flex: 1 1 320px;
+  min-width: 260px;
+}
+
+.karrierelinje {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.karrierelinje strong {
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.stolpe {
+  height: 12px;
+  background: var(--grå-100);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.stolpefyll {
+  height: 100%;
+  background: var(--merke-600);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+/* Trinnstigen viser hele veien, ikke bare det neste steget. */
+.trinnstige {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--grå-400);
+}
+
+.trinnstige .naadd {
+  color: var(--merke-700);
+  font-weight: 700;
+}
+
+/* Andelen fullførte brett, satt ved siden av tallet. */
+.bidel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--grå-600);
+  margin-left: 8px;
+}

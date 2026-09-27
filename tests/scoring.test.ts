@@ -3,15 +3,21 @@ import type { ScoringConfig } from '../core/game/scoring.ts';
 import {
   DEFAULT_SCORING,
   awardCell,
-  awardCompletion,
+  boardAward,
   boardTimeBonus,
   cellAward,
   chargeHint,
   chargeMistake,
   createScoreState,
   isOutOfLives,
+  nextRank,
+  rankFor,
+  rankProgress,
   timeBonus,
+  LEVEL_MULTIPLIER,
+  RANKS,
 } from '../core/game/scoring.ts';
+import { LEVELS } from '../core/tasks/types.ts';
 
 const config: ScoringConfig = DEFAULT_SCORING;
 
@@ -144,11 +150,112 @@ describe('brettbonus', () => {
     expect(boardTimeBonus(config, 0, 500)).toBe(config.maxBoardTimeBonus);
   });
 
-  it('legger fullførtbonus og tidsbonus til summen', () => {
-    const start = awardCell(createScoreState(config), config, { seconds: 5, hintLevel: 0 });
-    const etter = awardCompletion(start, config, 0, 10);
-    expect(etter.points).toBe(
-      start.points + config.completionBonus + boardTimeBonus(config, 0, 10),
+  it('legger fullførtbonus og tidsbonus til et fullført brett', () => {
+    const rawPoints = 1000;
+    const banket = boardAward(config, {
+      rawPoints,
+      completed: true,
+      seconds: 0,
+      taskCount: 10,
+      level: 'enkel',
+    });
+    expect(banket).toBe(rawPoints + config.completionBonus + boardTimeBonus(config, 0, 10));
+  });
+});
+
+describe('poeng per brett', () => {
+  const brett = (over: Partial<Parameters<typeof boardAward>[1]> = {}) => ({
+    rawPoints: 7000,
+    completed: true,
+    seconds: 600,
+    taskCount: 42,
+    level: 'enkel' as const,
+    ...over,
+  });
+
+  it('gir flere poeng jo hardere nivået er', () => {
+    const poeng = LEVELS.map((level) => boardAward(config, brett({ level })));
+    for (let i = 1; i < poeng.length; i += 1) {
+      expect(poeng[i]).toBeGreaterThan(poeng[i - 1] ?? 0);
+    }
+    expect(LEVEL_MULTIPLIER.enkel).toBe(1);
+  });
+
+  it('gir flere poeng for et raskt brett enn for et tregt', () => {
+    expect(boardAward(config, brett({ seconds: 300 }))).toBeGreaterThan(
+      boardAward(config, brett({ seconds: 5000 })),
     );
+  });
+
+  it('gir uttelling for et halvferdig brett', () => {
+    // Halvparten av cellene løst gir omtrent halvparten av råpoengene.
+    const halvt = boardAward(config, brett({ rawPoints: 3500, completed: false }));
+    expect(halvt).toBeGreaterThan(0);
+  });
+
+  it('gir litt mindre enn halvparten for et halvferdig brett', () => {
+    const fullt = boardAward(config, brett());
+    const halvt = boardAward(config, brett({ rawPoints: 3500, completed: false }));
+    const andel = halvt / fullt;
+
+    // Mindre enn halvparten, fordi fullførtbonusen og tidsbonusen faller bort.
+    expect(andel).toBeLessThan(0.5);
+    // Men ikke så mye mindre at halve brettet føles bortkastet.
+    expect(andel).toBeGreaterThan(0.35);
+  });
+
+  it('gir ingenting for et brett der ingenting ble løst', () => {
+    expect(boardAward(config, brett({ rawPoints: 0, completed: false }))).toBe(0);
+  });
+
+  it('gjør det alltid lønnsomt å spille brettet ferdig', () => {
+    for (const level of LEVELS) {
+      const nesten = boardAward(config, brett({ rawPoints: 6900, completed: false, level }));
+      const helt = boardAward(config, brett({ rawPoints: 7000, completed: true, level }));
+      expect(helt, `nivå ${level}`).toBeGreaterThan(nesten);
+    }
+  });
+
+  it('tåler et brett uten oppgaveceller', () => {
+    expect(() => boardAward(config, brett({ taskCount: 0, rawPoints: 0 }))).not.toThrow();
+  });
+});
+
+describe('trinn', () => {
+  it('starter på laveste trinn', () => {
+    expect(rankFor(0).id).toBe(RANKS[0]?.id);
+  });
+
+  it('stiger med poengsummen og går aldri nedover', () => {
+    let forrige = -1;
+    for (let poeng = 0; poeng <= 200_000; poeng += 2_500) {
+      const index = RANKS.findIndex((rank) => rank.id === rankFor(poeng).id);
+      expect(index).toBeGreaterThanOrEqual(forrige);
+      forrige = index;
+    }
+  });
+
+  it('treffer riktig trinn på grensene', () => {
+    for (const rank of RANKS) {
+      expect(rankFor(rank.from).id).toBe(rank.id);
+      if (rank.from > 0) {
+        expect(rankFor(rank.from - 1).id).not.toBe(rank.id);
+      }
+    }
+  });
+
+  it('melder om neste trinn helt til det høyeste er nådd', () => {
+    expect(nextRank(0)?.id).toBe(RANKS[1]?.id);
+    const høyeste = RANKS[RANKS.length - 1];
+    expect(nextRank(høyeste?.from ?? 0)).toBeNull();
+    expect(rankProgress(høyeste?.from ?? 0)).toBe(1);
+  });
+
+  it('gir en andel mellom 0 og 1 på vei mot neste trinn', () => {
+    for (let poeng = 0; poeng <= 200_000; poeng += 1_000) {
+      const andel = rankProgress(poeng);
+      expect(andel).toBeGreaterThanOrEqual(0);
+      expect(andel).toBeLessThanOrEqual(1);
+    }
   });
 });

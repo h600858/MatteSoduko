@@ -1,5 +1,6 @@
 import type { Progress } from "../../core/game/progress.ts";
 import { overallStats, templateSummaries } from "../../core/game/progress.ts";
+import { RANKS, nextRank, rankFor, rankProgress } from "../../core/game/scoring.ts";
 import { LEVEL_INFO } from "../../core/tasks/types.ts";
 import { persistsToFile } from "../state/storage.ts";
 import { formatTime } from "./Hud.tsx";
@@ -29,7 +30,7 @@ function vektKlasse(value: number | undefined): string {
   return "";
 }
 
-interface StatsProps {
+interface ProfileProps {
   progress: Progress;
   warning: string | null;
   /** Fra den adaptive vektingen. Vises så det går an å se hvorfor. */
@@ -37,23 +38,66 @@ interface StatsProps {
   onClose: () => void;
 }
 
-export function Stats({
+export function Profile({
   progress,
   warning,
   weights,
   onClose,
-}: StatsProps): React.JSX.Element {
+}: ProfileProps): React.JSX.Element {
   const rows = templateSummaries(progress);
   const totals = overallStats(progress);
+  const rang = rankFor(totals.totalPoints);
+  const neste = nextRank(totals.totalPoints);
+  const andel = rankProgress(totals.totalPoints);
 
   return (
     <div className="statistikk">
       <div className="statistikktopp">
-        <h1>Statistikk</h1>
+        <h1>Profil</h1>
         <button type="button" onClick={onClose}>
           Tilbake
         </button>
       </div>
+
+      <section className="karriere">
+        <div className="karrieretall">
+          <span className="karrierepoeng">{totals.totalPoints.toLocaleString("nb-NO")}</span>
+          <span className="karrieremerke">poeng totalt</span>
+        </div>
+        <div className="karrierenivaa">
+          <div className="karrierelinje">
+            <strong>{rang.label}</strong>
+            {neste === null ? (
+              <span className="hjelpetekst">Høyeste trinn nådd.</span>
+            ) : (
+              <span className="hjelpetekst">
+                {(neste.from - totals.totalPoints).toLocaleString("nb-NO")} poeng til{" "}
+                {neste.label}
+              </span>
+            )}
+          </div>
+          <div
+            className="stolpe"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(andel * 100)}
+          >
+            <div className="stolpefyll" style={{ width: `${Math.round(andel * 100)}%` }} />
+          </div>
+          <div className="trinnstige">
+            {RANKS.map((trinn) => (
+              <span
+                key={trinn.id}
+                className={trinn.from <= totals.totalPoints ? "naadd" : ""}
+                title={`${trinn.from.toLocaleString("nb-NO")} poeng`}
+              >
+                {trinn.label}
+              </span>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {warning !== null && <p className="feilmelding">{warning}</p>}
 
@@ -75,11 +119,22 @@ export function Stats({
             </div>
             <div>
               <dt>Fullført</dt>
-              <dd>{totals.boardsCompleted}</dd>
+              <dd>
+                {totals.boardsCompleted}
+                {totals.boardsPlayed > 0 && (
+                  <span className="bidel">
+                    ({Math.round((totals.boardsCompleted / totals.boardsPlayed) * 100)} %)
+                  </span>
+                )}
+              </dd>
             </div>
             <div>
-              <dt>Beste poengsum</dt>
+              <dt>Beste brett</dt>
               <dd>{totals.bestPoints ?? "–"}</dd>
+            </div>
+            <div>
+              <dt>Spilletid</dt>
+              <dd>{formatTime(progress.lifetime.msPlayed)}</dd>
             </div>
             <div>
               <dt>Celler riktig</dt>
