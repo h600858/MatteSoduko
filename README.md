@@ -24,7 +24,7 @@ så et brett kan reproduseres fra en seed.
 ```
 core/     ren TypeScript, ingen import fra React eller Electron
   rng.ts        seedbar generator
-  tasks/        oppgavemaler, register og mathjs-verifisering
+  tasks/        oppgavemaler, temakatalog, register og verifisering
   sudoku/       generering, løser og validering
   game/         motor, spilløkt, poengregler, fremdrift og adaptiv vekting
 electron/  hovedprosess (ESM) og preload (CJS, sandkasse på)
@@ -49,6 +49,33 @@ npm run dist:mac    # bygger macOS-dmg, må kjøres på en Mac
 npm run pack        # pakker ut appen uten installer, for rask kontroll
 npm run ikon        # regenererer plassholderikonet i build/
 ```
+
+## Vanskelighetsgrader og temaer
+
+Fire nivåer, knyttet til skoletrinn:
+
+| Nivå | Trinn | Temaer i dag |
+| --- | --- | --- |
+| Enkel | Ungdomsskole | Likninger og regnerekkefølge |
+| Middels | Videregående | Funksjoner, derivasjon |
+| Vanskelig | Universitet | Derivasjon, funksjoner |
+| Ultra vanskelig | Universitet, videregående emner | Integrasjon |
+
+Et brett bruker bare maler fra det valgte nivået. Nivået er en egenskap ved
+malen, ikke ved brettet, og hvilke temaer som finnes på et nivå utledes av
+malene selv. Det er derfor bare én kilde til den sannheten.
+
+### Legge til et nytt tema
+
+1. Skriv malene i `core/tasks/templates/<tema>.ts`. Hver mal oppgir `topic`,
+   `level` og en `build()` som er invertibel: parametrene velges ut fra det
+   bestilte svaret.
+2. Legg til én linje i `TOPICS` i `core/tasks/topics.ts` med id, navn og
+   beskrivelse.
+3. Legg malene inn i `allTemplates` i `core/tasks/registry.ts`.
+
+Verken motoren, UI-et eller typene må endres. Temaet dukker opp i valgmenyen
+på de nivåene malene hører til, og testene plukker det opp automatisk.
 
 ## Utseende
 
@@ -117,5 +144,5 @@ Ikonet i `build/icon.png` er en plassholder som genereres av
 - [x] **M7** Adaptiv vekting
 - [x] **M8** Pakking
 - [x] **M9** Designløft og maskot
-- [ ] **M10** Fire vanskelighetsnivåer og datadrevet temaregister
+- [x] **M10** Fire vanskelighetsnivåer og datadrevet temaregister
 - [ ] **M11** Poeng over tid og profilside

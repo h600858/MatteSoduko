@@ -27,7 +27,7 @@ import {
 const polynom2: TaskTemplate = {
   id: 'deriv.polynom2',
   topic: 'derivasjon',
-  difficulty: 2,
+  level: 'middels',
   build(target, rng): GeneratedTask | null {
     return attempt(() => {
       const a = rng.pick(nonZeroRange(-3, 3));
@@ -66,7 +66,7 @@ const polynom2: TaskTemplate = {
 const polynom3: TaskTemplate = {
   id: 'deriv.polynom3',
   topic: 'derivasjon',
-  difficulty: 2,
+  level: 'middels',
   build(target, rng): GeneratedTask | null {
     return attempt(() => {
       const a = rng.pick(nonZeroRange(-2, 2));
@@ -106,7 +106,7 @@ const polynom3: TaskTemplate = {
 const produkt: TaskTemplate = {
   id: 'deriv.produkt',
   topic: 'derivasjon',
-  difficulty: 3,
+  level: 'vanskelig',
   build(target, rng): GeneratedTask | null {
     return attempt(() => {
       const a = rng.pick(nonZeroRange(-3, 3));
@@ -148,7 +148,7 @@ const produkt: TaskTemplate = {
 const kjerne: TaskTemplate = {
   id: 'deriv.kjerne',
   topic: 'derivasjon',
-  difficulty: 3,
+  level: 'vanskelig',
   coversTarget(target) {
     return target % 2 === 0;
   },
@@ -188,7 +188,7 @@ const kjerne: TaskTemplate = {
 const kvotient: TaskTemplate = {
   id: 'deriv.kvotient',
   topic: 'derivasjon',
-  difficulty: 3,
+  level: 'vanskelig',
   build(target, rng): GeneratedTask | null {
     return attempt(() => {
       const x0 = rng.pick([-2, -1, 1, 2]);
@@ -223,7 +223,7 @@ const kvotient: TaskTemplate = {
 const eksp: TaskTemplate = {
   id: 'deriv.eksp',
   topic: 'derivasjon',
-  difficulty: 2,
+  level: 'vanskelig',
   build(target, rng): GeneratedTask | null {
     const aCandidates = signedDivisorsOf(target, 9);
     if (aCandidates.length === 0) return null;
@@ -259,7 +259,7 @@ const eksp: TaskTemplate = {
 const ekstremal: TaskTemplate = {
   id: 'deriv.ekstremal',
   topic: 'derivasjon',
-  difficulty: 3,
+  level: 'middels',
   build(target, rng): GeneratedTask | null {
     return attempt(() => {
       const a = rng.pick([1, 2]);
@@ -301,7 +301,7 @@ const ekstremal: TaskTemplate = {
 const tangent: TaskTemplate = {
   id: 'deriv.tangent',
   topic: 'derivasjon',
-  difficulty: 2,
+  level: 'middels',
   build(target, rng): GeneratedTask | null {
     return attempt(() => {
       const a = rng.pick(nonZeroRange(-4, 4));

@@ -280,6 +280,46 @@ button {
   flex: none;
 }
 
+/* Valg med tittel, trinn og forklaring under hverandre. */
+.oppsett label:has(.valgtekst) {
+  align-items: flex-start;
+}
+
+.oppsett label:has(.valgtekst) input {
+  margin-top: 3px;
+}
+
+.valgtekst {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.valgtekst strong {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-weight: 700;
+}
+
+.valgtekst .hjelpetekst {
+  font-weight: 400;
+}
+
+.trinn {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--merke-800);
+  background: var(--merke-100);
+  border: 1px solid var(--merke-200);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
 .oppsett input[type='text'] {
   font: inherit;
   padding: 10px 12px;

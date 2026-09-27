@@ -16,15 +16,18 @@ import {
   toggleNote,
 } from '../core/game/engine.ts';
 import { BOARD_SIZES, blockIndexOf, valueAt } from '../core/sudoku/grid.ts';
+import { taskRegistry } from '../core/tasks/registry.ts';
 import { validate } from '../core/sudoku/validate.ts';
-import { ALL_TOPICS, taskKey } from '../core/tasks/types.ts';
+import { taskKey } from '../core/tasks/types.ts';
+import { LEVELS } from '../core/tasks/types.ts';
+import { ALLE_TEMAER, NIVAA, temaerPaa } from './helpers.ts';
 import type { BoardSize } from '../core/sudoku/grid.ts';
 
 function options(size: BoardSize, seed: string): GenerateBoardOptions {
   return {
     size,
-    topics: ALL_TOPICS,
-    taskDifficulty: 3,
+    topics: ALLE_TEMAER,
+    level: NIVAA,
     boardDifficulty: 2,
     seed,
   };
@@ -78,36 +81,30 @@ describe('generateBoard', () => {
   });
 
   it('holder brettnivå og oppgavenivå fra hverandre', () => {
-    const lett = generateBoard({ ...options(9, 'nivaa'), boardDifficulty: 1, taskDifficulty: 3 });
-    const vanskelig = generateBoard({
-      ...options(9, 'nivaa'),
-      boardDifficulty: 3,
-      taskDifficulty: 1,
-    });
+    const lett = generateBoard({ ...options(9, 'nivaa'), boardDifficulty: 1 });
+    const mangeHull = generateBoard({ ...options(9, 'nivaa'), boardDifficulty: 3 });
 
-    // Samme seed, men ulikt hulltall.
-    expect(remainingCells(vanskelig).length).toBeGreaterThan(remainingCells(lett).length);
-
-    // Og bare nivå 1-maler i det siste brettet.
-    for (const cell of vanskelig.cells) {
-      if (cell.task === null) continue;
-      expect(['func.verdi', 'func.log']).toContain(cell.task.templateId);
-    }
+    // Samme seed og samme nivå, men ulikt hulltall.
+    expect(remainingCells(mangeHull).length).toBeGreaterThan(remainingCells(lett).length);
   });
 
-  it('bruker bare maler til og med valgt oppgavenivå', () => {
-    const board = generateBoard({ ...options(9, 'tak'), taskDifficulty: 2 });
+  it('bruker bare maler fra valgt nivå', () => {
+    const board = generateBoard({
+      ...options(9, 'tak'),
+      level: 'enkel',
+      topics: temaerPaa('enkel'),
+    });
     for (const cell of board.cells) {
       if (cell.task === null) continue;
-      expect(cell.task.templateId).not.toMatch(/^deriv\.(produkt|kjerne|kvotient|ekstremal)$/);
-      expect(cell.task.templateId).not.toMatch(/^func\.(sammensatt|invers)$/);
+      expect(cell.task.templateId.startsWith('deriv.')).toBe(false);
+      expect(cell.task.templateId.startsWith('int.')).toBe(false);
     }
   });
 
   it('sier tydelig fra når ingen mal kan gi svarene', () => {
-    // Derivasjon har ingen maler på nivå 1.
+    // Derivasjon finnes ikke på enkel-nivået.
     expect(() =>
-      generateBoard({ ...options(9, 'umulig'), topics: ['derivasjon'], taskDifficulty: 1 }),
+      generateBoard({ ...options(9, 'umulig'), topics: ['derivasjon'], level: 'enkel' }),
     ).toThrow(BoardGenerationError);
 
     expect(() => generateBoard({ ...options(9, 'tomt-tema'), topics: [] })).toThrow(
@@ -160,6 +157,53 @@ describe('testkrav 4: ingen to identiske oppgavetekster', () => {
     }
     // Sjekken er bare meningsfull hvis minst ett siffer faktisk gikk igjen.
     expect(mostRepeated).toBeGreaterThan(1);
+  });
+});
+
+describe('nivåene bærer et helt brett', () => {
+  // Det tynneste nivået har bare fem maler. Et 9x9-brett med mange hull
+  // trenger over femti unike oppgavetekster, så dette er stedet unikhets-
+  // kravet ryker først hvis en mal har for lite variasjon.
+  for (const level of LEVELS) {
+    it(`${level}: fullt 9x9-brett med unike oppgaver`, () => {
+      const board = generateBoard({
+        size: 9,
+        topics: temaerPaa(level),
+        level,
+        boardDifficulty: 3,
+        seed: `nivaabrett:${level}`,
+      });
+
+      const tekster = new Set<string>();
+      for (const cell of board.cells) {
+        if (cell.task === null) continue;
+        expect(cell.task.answer).toBe(cell.solution);
+        expect(cell.task.verify()).toBe(true);
+        const key = taskKey(cell.task);
+        expect(tekster.has(key), `${level} gjentar oppgaven: ${key}`).toBe(false);
+        tekster.add(key);
+      }
+
+      expect(tekster.size).toBe(remainingCells(board).length);
+      expect(tekster.size).toBeGreaterThan(45);
+    });
+  }
+
+  it('bruker bare maler fra det valgte nivået', () => {
+    for (const level of LEVELS) {
+      const board = generateBoard({
+        size: 6,
+        topics: temaerPaa(level),
+        level,
+        boardDifficulty: 2,
+        seed: `rent:${level}`,
+      });
+      for (const cell of board.cells) {
+        if (cell.task === null) continue;
+        const template = taskRegistry.byId(cell.task.templateId);
+        expect(template?.level, `${cell.task.templateId} hører ikke til ${level}`).toBe(level);
+      }
+    }
   });
 });
 
@@ -270,8 +314,12 @@ describe('testkrav 6: reproduserbarhet', () => {
   });
 
   it('flytter ikke på brettet når bare oppgavevalget endres', () => {
-    const a = generateBoard({ ...options(9, 'delt-seed'), taskDifficulty: 3 });
-    const b = generateBoard({ ...options(9, 'delt-seed'), taskDifficulty: 2 });
+    const a = generateBoard({ ...options(9, 'delt-seed'), level: 'middels' });
+    const b = generateBoard({
+      ...options(9, 'delt-seed'),
+      level: 'vanskelig',
+      topics: temaerPaa('vanskelig'),
+    });
     // Egne rng-strømmer for brett og oppgaver.
     expect(b.puzzle.cells).toEqual(a.puzzle.cells);
     expect(b.cells.map((cell) => cell.task?.templateId ?? null)).not.toEqual(

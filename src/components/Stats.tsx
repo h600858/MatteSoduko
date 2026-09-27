@@ -1,5 +1,6 @@
 import type { Progress } from "../../core/game/progress.ts";
 import { overallStats, templateSummaries } from "../../core/game/progress.ts";
+import { LEVEL_INFO } from "../../core/tasks/types.ts";
 import { persistsToFile } from "../state/storage.ts";
 import { formatTime } from "./Hud.tsx";
 
@@ -171,8 +172,8 @@ export function Stats({
                       <tr key={`${board.finishedAt}-${index}`}>
                         <td>{formatDate(board.finishedAt)}</td>
                         <td>
-                          {board.size}×{board.size} · n{board.boardDifficulty}/o
-                          {board.taskDifficulty}
+                          {board.size}×{board.size} ·{' '}
+                          {LEVEL_INFO[board.level].label.toLowerCase()}
                         </td>
                         <td>{board.mode}</td>
                         <td className={board.completed ? "ok" : "feil"}>

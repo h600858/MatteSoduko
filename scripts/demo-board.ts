@@ -9,8 +9,10 @@ import type { BoardDifficulty } from '../core/sudoku/generate.ts';
 import { generateBoard, remainingCells } from '../core/game/engine.ts';
 import type { BoardSize } from '../core/sudoku/grid.ts';
 import { gridToString, isBoardSize } from '../core/sudoku/grid.ts';
-import type { Difficulty, Topic } from '../core/tasks/types.ts';
-import { ALL_TOPICS } from '../core/tasks/types.ts';
+import { taskRegistry } from '../core/tasks/registry.ts';
+import { topicLabel } from '../core/tasks/topics.ts';
+import type { Level, Topic } from '../core/tasks/types.ts';
+import { isLevel } from '../core/tasks/types.ts';
 
 function flag(name: string): string | undefined {
   const prefix = `--${name}=`;
@@ -22,25 +24,26 @@ const seed = flag('seed') ?? `brett-${Date.now()}`;
 const rawSize = Number(flag('storrelse') ?? 9);
 const size: BoardSize = isBoardSize(rawSize) ? rawSize : 9;
 
-const rawTask = Number(flag('nivaa') ?? 3);
-const taskDifficulty: Difficulty = rawTask === 1 ? 1 : rawTask === 2 ? 2 : 3;
+const rawLevel = flag('nivaa') ?? 'middels';
+const level: Level = isLevel(rawLevel) ? rawLevel : 'middels';
 
 const rawBoard = Number(flag('brettnivaa') ?? 2);
 const boardDifficulty: BoardDifficulty = rawBoard === 1 ? 1 : rawBoard === 3 ? 3 : 2;
 
-const chosen = (flag('temaer') ?? '')
+const chosen: readonly Topic[] = (flag('temaer') ?? '')
   .split(',')
   .map((part) => part.trim())
-  .filter((part): part is Topic => part === 'derivasjon' || part === 'funksjoner');
-const topics = chosen.length > 0 ? chosen : ALL_TOPICS;
+  .filter((part) => part.length > 0);
+const topics =
+  chosen.length > 0 ? chosen : taskRegistry.topicsForLevel(level).map((topic) => topic.id);
 
-const board = generateBoard({ size, topics, taskDifficulty, boardDifficulty, seed });
+const board = generateBoard({ size, topics, level, boardDifficulty, seed });
 const open = remainingCells(board);
 
 console.log(`Seed: ${board.seed}`);
 console.log(
-  `${size}x${size}   brettnivå ${boardDifficulty}   oppgavenivå <= ${taskDifficulty}   ` +
-    `temaer: ${topics.join(', ')}`,
+  `${size}x${size}   hull-nivå ${boardDifficulty}   vanskelighetsgrad: ${level}   ` +
+    `temaer: ${topics.map(topicLabel).join(', ')}`,
 );
 console.log(`${open.length} celler med oppgave, ${size * size - open.length} givne.`);
 console.log('');

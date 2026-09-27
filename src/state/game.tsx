@@ -24,13 +24,14 @@ import {
 import { cellAt } from '../../core/game/engine.ts';
 import type { BoardDifficulty } from '../../core/sudoku/generate.ts';
 import type { BoardSize } from '../../core/sudoku/grid.ts';
-import type { Difficulty, Topic } from '../../core/tasks/types.ts';
-import { ALL_TOPICS } from '../../core/tasks/types.ts';
+import { taskRegistry } from '../../core/tasks/registry.ts';
+import type { Level, Topic } from '../../core/tasks/types.ts';
 
 export interface Settings {
   size: BoardSize;
   topics: readonly Topic[];
-  taskDifficulty: Difficulty;
+  /** Skolenivået. Bare maler fra dette nivået brukes. */
+  level: Level;
   boardDifficulty: BoardDifficulty;
   mode: ErrorMode;
   /**
@@ -49,10 +50,12 @@ export interface GameState {
   error: string | null;
 }
 
+const DEFAULT_LEVEL: Level = 'middels';
+
 export const DEFAULT_SETTINGS: Settings = {
   size: 9,
-  topics: ALL_TOPICS,
-  taskDifficulty: 3,
+  topics: taskRegistry.topicsForLevel(DEFAULT_LEVEL).map((topic) => topic.id),
+  level: DEFAULT_LEVEL,
   boardDifficulty: 2,
   mode: 'rolig',
   adaptive: true,
@@ -96,7 +99,7 @@ function reducer(state: GameState, action: GameAction): GameState {
         const board = generateBoard({
           size: action.settings.size,
           topics: action.settings.topics,
-          taskDifficulty: action.settings.taskDifficulty,
+          level: action.settings.level,
           boardDifficulty: action.settings.boardDifficulty,
           seed,
           ...(action.settings.adaptive && action.weights !== undefined

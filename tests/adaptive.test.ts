@@ -9,7 +9,8 @@ import { generateBoard } from '../core/game/engine.ts';
 import type { Progress, TemplateStats } from '../core/game/progress.ts';
 import { emptyProgress } from '../core/game/progress.ts';
 import { allTemplates } from '../core/tasks/registry.ts';
-import { ALL_TOPICS } from '../core/tasks/types.ts';
+import { ALLE_TEMAER, NIVAA } from './helpers.ts';
+
 
 const config = DEFAULT_ADAPTIVE;
 const ALL_IDS = allTemplates.map((template) => template.id);
@@ -152,8 +153,8 @@ describe('vekting: grenser og robusthet', () => {
 describe('vekting i brettbyggingen', () => {
   const baseOptions = {
     size: 9 as const,
-    topics: ALL_TOPICS,
-    taskDifficulty: 3 as const,
+    topics: ALLE_TEMAER,
+    level: NIVAA,
     boardDifficulty: 3 as const,
   };
 

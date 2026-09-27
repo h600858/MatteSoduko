@@ -9,10 +9,23 @@
  * hovedprosess, denne modulen tar bare imot og gir fra seg data.
  */
 import { z } from 'zod';
+import type { Level } from '../tasks/types.ts';
+import { LEVELS } from '../tasks/types.ts';
 import type { Session, TaskTiming } from './session.ts';
 import { boardElapsedMs, countTasks, taskTimings } from './session.ts';
 
-export const PROGRESS_VERSION = 1;
+export const PROGRESS_VERSION = 2;
+
+/**
+ * Versjon 1 lagret oppgavenivået som tallet 1, 2 eller 3. Versjon 2 lagrer
+ * skolenivået som tekst. Alt innhold i versjon 1 var MAT102-stoff, altså
+ * videregående og universitet, så de gamle tallene oversettes deretter.
+ */
+const V1_NIVAA: Readonly<Record<number, Level>> = {
+  1: 'middels',
+  2: 'middels',
+  3: 'vanskelig',
+};
 
 const isoDate = z.string().refine((value) => !Number.isNaN(Date.parse(value)), {
   message: 'forventet en ISO-dato',
@@ -39,7 +52,7 @@ export const boardResultSchema = z.object({
   seed: z.string(),
   size: z.number().int().positive(),
   mode: z.enum(['streng', 'rolig']),
-  taskDifficulty: z.number().int().min(1).max(3),
+  level: z.enum(LEVELS as unknown as [Level, ...Level[]]),
   boardDifficulty: z.number().int().min(1).max(3),
   points: z.number().int(),
   durationMs: z.number().nonnegative(),
@@ -100,7 +113,11 @@ export function loadProgress(raw: unknown): LoadResult {
     }
   }
 
-  const parsed = progressSchema.safeParse(data);
+  // Eldre filer løftes til gjeldende versjon før skjemaet får se dem, slik at
+  // statistikk ikke går tapt bare fordi formatet har endret seg.
+  const løftet = migrate(data);
+
+  const parsed = progressSchema.safeParse(løftet);
   if (!parsed.success) {
     const first = parsed.error.issues[0];
     const where = first === undefined ? '' : ` (${first.path.join('.')}: ${first.message})`;
@@ -111,6 +128,38 @@ export function loadProgress(raw: unknown): LoadResult {
   }
 
   return { progress: parsed.data, warning: null };
+}
+
+/** Skjemaet for versjon 1, kun det migreringen trenger for å kjenne den igjen. */
+const v1Schema = z.object({
+  version: z.literal(1),
+  templates: z.record(z.string(), templateStatsSchema),
+  boards: z.array(
+    boardResultSchema
+      .omit({ level: true })
+      .extend({ taskDifficulty: z.number().int().min(1).max(3) }),
+  ),
+});
+
+/**
+ * Løfter en gammel fremdriftsfil til gjeldende versjon.
+ *
+ * Kjenner den ikke igjen formatet, sendes innholdet videre urørt. Da er det
+ * skjemaet som avgjør om det kan brukes, og brukeren får en melding om hva som
+ * var galt i stedet for en stille sletting.
+ */
+export function migrate(data: unknown): unknown {
+  const v1 = v1Schema.safeParse(data);
+  if (!v1.success) return data;
+
+  return {
+    version: PROGRESS_VERSION,
+    templates: v1.data.templates,
+    boards: v1.data.boards.map((board) => {
+      const { taskDifficulty, ...resten } = board;
+      return { ...resten, level: V1_NIVAA[taskDifficulty] ?? 'middels' };
+    }),
+  };
 }
 
 function emptyStats(lastSeen: string): TemplateStats {
@@ -156,7 +205,7 @@ export function sessionRecord(session: Session, now: number): SessionRecord {
       seed: session.board.seed,
       size: session.board.size,
       mode: session.mode,
-      taskDifficulty: session.board.taskDifficulty,
+      level: session.board.level,
       boardDifficulty: session.board.boardDifficulty,
       points: Math.round(session.score.points),
       durationMs: boardElapsedMs(session, now),

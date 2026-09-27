@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { createRng } from '../core/rng.ts';
 import { allTemplates } from '../core/tasks/registry.ts';
 import type { TaskTemplate } from '../core/tasks/types.ts';
-import { templateCovers } from '../core/tasks/types.ts';
+import { LEVELS, templateCovers } from '../core/tasks/types.ts';
+import { TOPICS } from '../core/tasks/topics.ts';
 
 /** Antall genererte oppgaver per mal, jf. testkrav 1. */
 const ITERATIONS = 500;
@@ -20,6 +21,16 @@ interface Run {
  * stedet for "3 \cdot 4". KaTeX ville rendret det som bokstaver.
  */
 const BARE_LATEX_COMMAND = /(?<!\\)\b(cdot|frac|qquad|quad|log_|sqrt)\b/;
+
+/**
+ * Fanger rå flyttall som har sluppet ut i oppgaveteksten, f.eks.
+ * "-0.3333333333333333x^3" der det skulle stått en brøk.
+ */
+const RATT_FLYTTALL = /\d\.\d{3,}/;
+
+function assertNoFloatLeak(text: string, where: string): void {
+  expect(RATT_FLYTTALL.test(text), `${where} viser et rått flyttall: ${text}`).toBe(false);
+}
 
 function assertLatexEscaping(text: string, where: string): void {
   const match = BARE_LATEX_COMMAND.exec(text);
@@ -54,9 +65,11 @@ function exercise(template: TaskTemplate): Run {
     expect(task.prompt.length).toBeGreaterThan(0);
     expect(task.steps.length).toBeGreaterThan(0);
     assertLatexEscaping(task.latex, `${template.id} latex`);
+    assertNoFloatLeak(task.latex, `${template.id} latex`);
     for (const step of task.steps) {
       expect(step.length).toBeGreaterThan(0);
       assertLatexEscaping(step, `${template.id} steg`);
+      assertNoFloatLeak(step, `${template.id} steg`);
     }
     // Uavhengig kontroll med mathjs, ikke med malens egen inversformel.
     expect(
@@ -74,9 +87,14 @@ describe('oppgavemaler', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it('dekker begge temaene', () => {
-    const topics = new Set(allTemplates.map((template) => template.topic));
-    expect(topics).toEqual(new Set(['derivasjon', 'funksjoner']));
+  it('dekker alle temaene i katalogen', () => {
+    const brukt = new Set(allTemplates.map((template) => template.topic));
+    expect(brukt).toEqual(new Set(TOPICS.map((topic) => topic.id)));
+  });
+
+  it('dekker alle fire nivåene', () => {
+    const nivaaer = new Set(allTemplates.map((template) => template.level));
+    expect(nivaaer).toEqual(new Set(LEVELS));
   });
 
   for (const template of allTemplates) {

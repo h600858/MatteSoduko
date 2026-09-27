@@ -1,15 +1,68 @@
 import type { Rng } from '../rng.ts';
 
-/** 1 = direkte innsetting, 2 = én regel, 3 = sammensatte regler / flere steg. */
-export type Difficulty = 1 | 2 | 3;
+/**
+ * Vanskelighetsnivå, knyttet til skoletrinn.
+ *
+ * Nivået er en egenskap ved malen, ikke ved brettet. Et brett velger ett nivå,
+ * og bruker bare maler fra det nivået. Antall hull styres av brettets egen
+ * vanskelighetsgrad, uavhengig av dette.
+ */
+export type Level = 'enkel' | 'middels' | 'vanskelig' | 'ultra';
+
+export const LEVELS: readonly Level[] = ['enkel', 'middels', 'vanskelig', 'ultra'];
+
+export interface LevelInfo {
+  id: Level;
+  label: string;
+  /** Skoletrinnet nivået sikter mot. */
+  trinn: string;
+  description: string;
+}
+
+export const LEVEL_INFO: Readonly<Record<Level, LevelInfo>> = {
+  enkel: {
+    id: 'enkel',
+    label: 'Enkel',
+    trinn: 'Ungdomsskole',
+    description: 'Likninger, regnerekkefølge og negative tall.',
+  },
+  middels: {
+    id: 'middels',
+    label: 'Middels',
+    trinn: 'Videregående',
+    description: 'Funksjoner, nullpunkt, logaritmer og derivasjon av polynomer.',
+  },
+  vanskelig: {
+    id: 'vanskelig',
+    label: 'Vanskelig',
+    trinn: 'Universitet',
+    description: 'Produktregel, kjerneregel, sammensatte og inverse funksjoner.',
+  },
+  ultra: {
+    id: 'ultra',
+    label: 'Ultra vanskelig',
+    trinn: 'Universitet, videregående emner',
+    description: 'Bestemte og uegentlige integraler, areal mellom kurver.',
+  },
+};
+
+export function isLevel(value: string): value is Level {
+  return LEVELS.includes(value as Level);
+}
 
 /**
- * Temaer. Nye temaer (statistikk, integrasjon) legges til her og registreres i
- * registeret uten at motoren må endres.
+ * Tema-id. Fri streng, ikke en fast union.
+ *
+ * Det er med vilje: nye temaer skal kunne legges til ved å skrive én malfil og
+ * én linje i temakatalogen, uten at typer eller motor må endres.
  */
-export type Topic = 'derivasjon' | 'funksjoner';
+export type Topic = string;
 
-export const ALL_TOPICS: readonly Topic[] = ['derivasjon', 'funksjoner'];
+export interface TopicInfo {
+  id: Topic;
+  label: string;
+  description: string;
+}
 
 export interface GeneratedTask {
   templateId: string;
@@ -29,7 +82,7 @@ export interface TaskTemplate {
   /** F.eks. "deriv.polynom2". */
   id: string;
   topic: Topic;
-  difficulty: Difficulty;
+  level: Level;
   /** Returnerer null hvis ingen gyldige parametre finnes for dette svaret. */
   build(target: number, rng: Rng): GeneratedTask | null;
   /**

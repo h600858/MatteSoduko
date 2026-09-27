@@ -6,6 +6,8 @@ import {
   countTasks,
   unsolvedCount,
 } from '../../core/game/session.ts';
+import { topicLabel } from '../../core/tasks/topics.ts';
+import { LEVEL_INFO } from '../../core/tasks/types.ts';
 import type { GameAction } from '../state/game.tsx';
 
 /** mm:ss. */
@@ -94,9 +96,9 @@ export function Hud({ session, noteMode, now, dispatch }: HudProps): React.JSX.E
           {board.size}×{board.size}
         </span>
         <span>brettnivå {board.boardDifficulty}</span>
-        <span>oppgavenivå ≤ {board.taskDifficulty}</span>
+        <span>{LEVEL_INFO[board.level].label.toLowerCase()}</span>
         <span>{mode} modus</span>
-        <span>{board.topics.join(', ')}</span>
+        <span>{board.topics.map((id) => topicLabel(id)).join(', ')}</span>
         <span className="seed">seed: {board.seed}</span>
       </div>
 

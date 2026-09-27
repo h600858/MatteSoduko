@@ -8,6 +8,7 @@ import {
   averageMs,
   emptyProgress,
   loadProgress,
+  migrate,
   overallStats,
   progressSchema,
   recordSession,
@@ -16,8 +17,9 @@ import {
   wasAttempted,
 } from '../core/game/progress.ts';
 import type { TaskTiming } from '../core/game/session.ts';
+import { ALLE_TEMAER, NIVAA } from './helpers.ts';
 import { focusCell, startSession, submitValue, takeHint } from '../core/game/session.ts';
-import { ALL_TOPICS } from '../core/tasks/types.ts';
+
 
 function timing(overrides: Partial<TaskTiming> = {}): TaskTiming {
   return {
@@ -38,7 +40,7 @@ function boardResult(overrides: Partial<BoardResult> = {}): BoardResult {
     seed: 'test',
     size: 9,
     mode: 'rolig',
-    taskDifficulty: 3,
+    level: NIVAA,
     boardDifficulty: 2,
     points: 1000,
     durationMs: 60_000,
@@ -146,6 +148,57 @@ describe('loadProgress: en korrupt fil skal aldri krasje appen', () => {
     const result = loadProgress(JSON.stringify(emptyProgress()));
     expect(result.warning).toBeNull();
     expect(result.progress).toEqual(emptyProgress());
+  });
+});
+
+describe('migrering fra versjon 1', () => {
+  const v1 = {
+    version: 1,
+    templates: {
+      'deriv.polynom2': {
+        attempts: 5,
+        correct: 4,
+        solvedMs: 40_000,
+        hinted: 1,
+        wrongAttempts: 2,
+        lastSeen: '2026-09-01T10:00:00.000Z',
+      },
+    },
+    boards: [
+      { ...boardResult(), taskDifficulty: 3, level: undefined },
+      { ...boardResult(), taskDifficulty: 1, level: undefined },
+    ].map((board) => {
+      const { level, ...resten } = board;
+      void level;
+      return resten;
+    }),
+  };
+
+  it('beholder statistikken i stedet for å kaste den', () => {
+    const result = loadProgress(JSON.stringify(v1));
+    expect(result.warning).toBeNull();
+    expect(result.progress.version).toBe(PROGRESS_VERSION);
+    expect(result.progress.templates['deriv.polynom2']?.attempts).toBe(5);
+    expect(result.progress.boards).toHaveLength(2);
+  });
+
+  it('oversetter det gamle tallnivået til et skolenivå', () => {
+    const { progress } = loadProgress(JSON.stringify(v1));
+    // Alt innhold i versjon 1 var MAT102-stoff.
+    expect(progress.boards[0]?.level).toBe('vanskelig');
+    expect(progress.boards[1]?.level).toBe('middels');
+  });
+
+  it('lar en fil som verken er v1 eller v2 gi en melding', () => {
+    const tull = { version: 1, templates: 'ikke et objekt', boards: [] };
+    const result = loadProgress(JSON.stringify(tull));
+    expect(result.progress).toEqual(emptyProgress());
+    expect(result.warning).not.toBeNull();
+  });
+
+  it('rører ikke en fil som allerede er på gjeldende versjon', () => {
+    const v2 = recordSession(emptyProgress(), { timings: [timing()], board: boardResult() });
+    expect(migrate(v2)).toEqual(v2);
   });
 });
 
@@ -324,8 +377,8 @@ describe('sessionRecord: fra ekte spilløkt til lagret fremdrift', () => {
   it('fanger opp det som faktisk skjedde i økten', () => {
     const board = generateBoard({
       size: 4,
-      topics: ALL_TOPICS,
-      taskDifficulty: 3,
+      topics: ALLE_TEMAER,
+      level: NIVAA,
       boardDifficulty: 2,
       seed: 'lagring',
     });

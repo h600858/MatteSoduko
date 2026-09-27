@@ -20,15 +20,15 @@ import {
   toggleActiveNote,
   unsolvedCount,
 } from '../core/game/session.ts';
-import { ALL_TOPICS } from '../core/tasks/types.ts';
+import { ALLE_TEMAER, NIVAA } from './helpers.ts';
 
 const config = DEFAULT_SCORING;
 
 function board(seed: string): Board {
   return generateBoard({
     size: 9,
-    topics: ALL_TOPICS,
-    taskDifficulty: 3,
+    topics: ALLE_TEMAER,
+    level: NIVAA,
     boardDifficulty: 2,
     seed,
   });

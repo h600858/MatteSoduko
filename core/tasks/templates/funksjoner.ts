@@ -21,7 +21,7 @@ import {
 const verdi: TaskTemplate = {
   id: 'func.verdi',
   topic: 'funksjoner',
-  difficulty: 1,
+  level: 'middels',
   build(target, rng): GeneratedTask | null {
     return attempt(() => {
       const a = rng.pick(nonZeroRange(-5, 5));
@@ -61,7 +61,7 @@ const verdi: TaskTemplate = {
 const nullpunkt: TaskTemplate = {
   id: 'func.nullpunkt',
   topic: 'funksjoner',
-  difficulty: 2,
+  level: 'middels',
   build(target, rng): GeneratedTask | null {
     return attempt(() => {
       const r = rng.int(target - 7, target - 1);
@@ -115,7 +115,7 @@ const LOG_BASES: readonly { base: number; maxExponent: number }[] = [
 const log: TaskTemplate = {
   id: 'func.log',
   topic: 'funksjoner',
-  difficulty: 1,
+  level: 'middels',
   build(target, rng): GeneratedTask | null {
     const usable = LOG_BASES.filter((entry) => target <= entry.maxExponent);
     if (usable.length === 0) return null;
@@ -149,7 +149,7 @@ const log: TaskTemplate = {
 const skjaering: TaskTemplate = {
   id: 'func.skjaering',
   topic: 'funksjoner',
-  difficulty: 2,
+  level: 'middels',
   build(target, rng): GeneratedTask | null {
     return attempt(() => {
       const a1 = rng.pick(nonZeroRange(-4, 4));
@@ -198,7 +198,7 @@ const skjaering: TaskTemplate = {
 const sammensatt: TaskTemplate = {
   id: 'func.sammensatt',
   topic: 'funksjoner',
-  difficulty: 3,
+  level: 'vanskelig',
   build(target, rng): GeneratedTask | null {
     return attempt(() => {
       const a = rng.pick(nonZeroRange(-4, 4));
@@ -247,7 +247,7 @@ const sammensatt: TaskTemplate = {
 const invers: TaskTemplate = {
   id: 'func.invers',
   topic: 'funksjoner',
-  difficulty: 3,
+  level: 'vanskelig',
   build(target, rng): GeneratedTask | null {
     return attempt(() => {
       const a = rng.pick(nonZeroRange(-5, 5));
@@ -286,7 +286,7 @@ const VEKST_START: readonly number[] = [2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 30
 const vekst: TaskTemplate = {
   id: 'func.vekst',
   topic: 'funksjoner',
-  difficulty: 2,
+  level: 'middels',
   build(target, rng): GeneratedTask | null {
     return attempt(() => {
       const start = rng.pick(VEKST_START);
@@ -319,7 +319,7 @@ const vekst: TaskTemplate = {
 const definisjon: TaskTemplate = {
   id: 'func.definisjon',
   topic: 'funksjoner',
-  difficulty: 2,
+  level: 'middels',
   build(target, rng): GeneratedTask | null {
     return attempt(() => {
       const a = rng.int(2, 5);

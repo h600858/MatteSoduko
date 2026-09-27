@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { BoardDifficulty } from '../../core/sudoku/generate.ts';
 import type { BoardSize } from '../../core/sudoku/grid.ts';
 import { BOARD_SIZES } from '../../core/sudoku/grid.ts';
-import type { Difficulty, Topic } from '../../core/tasks/types.ts';
-import { ALL_TOPICS } from '../../core/tasks/types.ts';
+import { taskRegistry } from '../../core/tasks/registry.ts';
+import type { Level, Topic } from '../../core/tasks/types.ts';
+import { LEVEL_INFO } from '../../core/tasks/types.ts';
 import type { Settings } from '../state/game.tsx';
 
 interface SetupProps {
@@ -14,19 +15,12 @@ interface SetupProps {
   onStart: (settings: Settings) => void;
 }
 
-const DIFFICULTIES: readonly Difficulty[] = [1, 2, 3];
 const BOARD_DIFFICULTIES: readonly BoardDifficulty[] = [1, 2, 3];
 
-const TASK_LABEL: Readonly<Record<Difficulty, string>> = {
-  1: '1 — direkte innsetting',
-  2: '2 — én regel',
-  3: '3 — sammensatte regler',
-};
-
 const BOARD_LABEL: Readonly<Record<BoardDifficulty, string>> = {
-  1: '1 — få hull',
-  2: '2 — middels',
-  3: '3 — mange hull',
+  1: 'Få hull',
+  2: 'Middels',
+  3: 'Mange hull',
 };
 
 export function Setup({
@@ -37,22 +31,36 @@ export function Setup({
 }: SetupProps): React.JSX.Element {
   const [draft, setDraft] = useState<Settings>(settings);
 
-  const toggleTopic = (topic: Topic): void => {
-    const has = draft.topics.includes(topic);
-    const next = has ? draft.topics.filter((t) => t !== topic) : [...draft.topics, topic];
-    setDraft({ ...draft, topics: next });
+  // Nivåene og temaene leses ut av registeret, ikke av en liste her. Legges en
+  // ny malfil inn i registeret, dukker temaet opp i menyen av seg selv.
+  const levels = useMemo(() => taskRegistry.levels(), []);
+  const topics = useMemo(() => taskRegistry.topicsForLevel(draft.level), [draft.level]);
+
+  /** Bytte av nivå tar med seg temaene som finnes der. */
+  const velgNivå = (level: Level): void => {
+    const tilgjengelige = taskRegistry.topicsForLevel(level).map((topic) => topic.id);
+    const beholdt = draft.topics.filter((id) => tilgjengelige.includes(id));
+    setDraft({
+      ...draft,
+      level,
+      topics: beholdt.length > 0 ? beholdt : tilgjengelige,
+    });
   };
 
-  // Derivasjon har ingen maler på nivå 1, så den kombinasjonen er umulig.
-  const onlyDerivasjon = draft.topics.length === 1 && draft.topics[0] === 'derivasjon';
-  const impossible = draft.topics.length === 0 || (onlyDerivasjon && draft.taskDifficulty === 1);
+  const toggleTopic = (topic: Topic): void => {
+    const har = draft.topics.includes(topic);
+    const neste = har ? draft.topics.filter((t) => t !== topic) : [...draft.topics, topic];
+    setDraft({ ...draft, topics: neste });
+  };
+
+  const ingenTemaer = draft.topics.length === 0;
 
   return (
     <div className="oppsett">
       <h1>MatteSudoku</h1>
       <p className="ingress">
-        Hver tomme celle inneholder en oppgave fra MAT102-pensum. Svaret er tallet som skal stå
-        i cellen.
+        Hver tomme celle inneholder en matteoppgave. Svaret er tallet som skal stå i cellen,
+        og sudokureglene sier fra hvis noe ikke stemmer.
       </p>
 
       <form
@@ -61,6 +69,51 @@ export function Setup({
           onStart(draft);
         }}
       >
+        <fieldset>
+          <legend>Vanskelighetsgrad</legend>
+          {levels.map((level) => {
+            const info = LEVEL_INFO[level];
+            return (
+              <label key={level}>
+                <input
+                  type="radio"
+                  name="nivaa"
+                  checked={draft.level === level}
+                  onChange={() => velgNivå(level)}
+                />
+                <span className="valgtekst">
+                  <strong>
+                    {info.label}
+                    <span className="trinn">{info.trinn}</span>
+                  </strong>
+                  <span className="hjelpetekst">{info.description}</span>
+                </span>
+              </label>
+            );
+          })}
+        </fieldset>
+
+        <fieldset>
+          <legend>Temaer på dette nivået</legend>
+          {topics.length === 0 ? (
+            <p className="hjelpetekst">Ingen temaer er lagt inn på dette nivået ennå.</p>
+          ) : (
+            topics.map((topic) => (
+              <label key={topic.id}>
+                <input
+                  type="checkbox"
+                  checked={draft.topics.includes(topic.id)}
+                  onChange={() => toggleTopic(topic.id)}
+                />
+                <span className="valgtekst">
+                  <strong>{topic.label}</strong>
+                  <span className="hjelpetekst">{topic.description}</span>
+                </span>
+              </label>
+            ))
+          )}
+        </fieldset>
+
         <fieldset>
           <legend>Brettstørrelse</legend>
           {BOARD_SIZES.map((size: BoardSize) => (
@@ -77,36 +130,7 @@ export function Setup({
         </fieldset>
 
         <fieldset>
-          <legend>Temaer</legend>
-          {ALL_TOPICS.map((topic) => (
-            <label key={topic}>
-              <input
-                type="checkbox"
-                checked={draft.topics.includes(topic)}
-                onChange={() => toggleTopic(topic)}
-              />
-              {topic}
-            </label>
-          ))}
-        </fieldset>
-
-        <fieldset>
-          <legend>Oppgavenivå (maler til og med)</legend>
-          {DIFFICULTIES.map((level) => (
-            <label key={level}>
-              <input
-                type="radio"
-                name="oppgavenivaa"
-                checked={draft.taskDifficulty === level}
-                onChange={() => setDraft({ ...draft, taskDifficulty: level })}
-              />
-              {TASK_LABEL[level]}
-            </label>
-          ))}
-        </fieldset>
-
-        <fieldset>
-          <legend>Brettnivå (antall hull)</legend>
+          <legend>Antall hull</legend>
           {BOARD_DIFFICULTIES.map((level) => (
             <label key={level}>
               <input
@@ -129,7 +153,12 @@ export function Setup({
               checked={draft.mode === 'rolig'}
               onChange={() => setDraft({ ...draft, mode: 'rolig' })}
             />
-            rolig — feil vises først når du trykker sjekk, og koster ikke liv
+            <span className="valgtekst">
+              <strong>Rolig</strong>
+              <span className="hjelpetekst">
+                Feil vises først når du trykker sjekk, og koster ikke liv.
+              </span>
+            </span>
           </label>
           <label>
             <input
@@ -138,7 +167,10 @@ export function Setup({
               checked={draft.mode === 'streng'}
               onChange={() => setDraft({ ...draft, mode: 'streng' })}
             />
-            streng — feil markeres med én gang og koster ett liv
+            <span className="valgtekst">
+              <strong>Streng</strong>
+              <span className="hjelpetekst">Feil markeres med én gang og koster ett liv.</span>
+            </span>
           </label>
         </fieldset>
 
@@ -150,13 +182,15 @@ export function Setup({
               checked={draft.adaptive}
               onChange={() => setDraft({ ...draft, adaptive: !draft.adaptive })}
             />
-            tilpass etter statistikken min
+            <span className="valgtekst">
+              <strong>Tilpass etter statistikken min</strong>
+              <span className="hjelpetekst">
+                {knownTemplates === 0
+                  ? 'Ingen statistikk ennå, så alle maler trekkes likt. Etter noen brett vektes maler du bommer på eller bruker lang tid på, oftere.'
+                  : `Maler du bommer på eller bruker lang tid på trekkes oftere. Bygger på ${knownTemplates} maler du har spilt.`}
+              </span>
+            </span>
           </label>
-          <p className="hjelpetekst">
-            {knownTemplates === 0
-              ? 'Ingen statistikk ennå, så alle maler trekkes likt uansett. Etter noen brett vektes maler du bommer på eller bruker lang tid på, oftere.'
-              : `Maler du bommer på eller bruker lang tid på trekkes oftere. Bygger på ${knownTemplates} maler du har spilt. Slå av for å få det samme brettet av en seed uavhengig av statistikken.`}
-          </p>
         </fieldset>
 
         <fieldset>
@@ -173,18 +207,11 @@ export function Setup({
           </p>
         </fieldset>
 
-        {impossible && (
-          <p className="feilmelding">
-            {draft.topics.length === 0
-              ? 'Velg minst ett tema.'
-              : 'Derivasjon har ingen maler på nivå 1. Velg nivå 2 eller høyere, eller ta med funksjoner.'}
-          </p>
-        )}
-
+        {ingenTemaer && <p className="feilmelding">Velg minst ett tema.</p>}
         {error !== null && <p className="feilmelding">{error}</p>}
 
         <div className="startknapper">
-          <button type="submit" className="start" disabled={impossible}>
+          <button type="submit" className="start" disabled={ingenTemaer}>
             Start
           </button>
         </div>

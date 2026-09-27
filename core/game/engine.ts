@@ -20,7 +20,7 @@ import type { ValidationResult } from '../sudoku/validate.ts';
 import { validate } from '../sudoku/validate.ts';
 import type { TaskRegistry } from '../tasks/registry.ts';
 import { taskRegistry as defaultRegistry } from '../tasks/registry.ts';
-import type { Difficulty, GeneratedTask, Topic } from '../tasks/types.ts';
+import type { GeneratedTask, Level, Topic } from '../tasks/types.ts';
 import { taskKey } from '../tasks/types.ts';
 
 export type CellStatus = 'tom' | 'fylt' | 'konflikt' | 'låst';
@@ -44,7 +44,7 @@ export interface Board {
   readonly blockRows: number;
   readonly blockCols: number;
   readonly topics: readonly Topic[];
-  readonly taskDifficulty: Difficulty;
+  readonly level: Level;
   readonly boardDifficulty: BoardDifficulty;
   /** size*size celler, radvis. */
   readonly cells: readonly Cell[];
@@ -57,8 +57,8 @@ export interface Board {
 export interface GenerateBoardOptions {
   size: BoardSize;
   topics: readonly Topic[];
-  /** Maler til og med dette nivået brukes. */
-  taskDifficulty: Difficulty;
+  /** Skolenivået brettet spilles på. Bare maler fra dette nivået brukes. */
+  level: Level;
   /** Styrer antall hull. Uavhengig av taskDifficulty. */
   boardDifficulty: BoardDifficulty;
   seed: string | number;
@@ -229,7 +229,7 @@ function assertTemplatesExist(options: GenerateBoardOptions, registry: TaskRegis
   for (let target = 1; target <= options.size; target += 1) {
     const pool = registry.candidates({
       topics: options.topics,
-      maxDifficulty: options.taskDifficulty,
+      level: options.level,
       targetAnswer: target,
     });
     if (pool.length === 0) missing.push(target);
@@ -238,8 +238,8 @@ function assertTemplatesExist(options: GenerateBoardOptions, registry: TaskRegis
   if (missing.length > 0) {
     throw new BoardGenerationError(
       `Ingen oppgavemal kan gi svaret ${missing.join(', ')} med temaene ` +
-        `[${options.topics.join(', ')}] på nivå ${options.taskDifficulty} eller lavere. ` +
-        'Velg flere temaer eller et høyere oppgavenivå.',
+        `[${options.topics.join(', ')}] på nivået «${options.level}». ` +
+        'Velg flere temaer, et annet nivå, eller et mindre brett.',
     );
   }
 }
@@ -275,7 +275,7 @@ function buildTasks(
 
       const task = registry.generateTask({
         topics: options.topics,
-        maxDifficulty: options.taskDifficulty,
+        level: options.level,
         targetAnswer: answer,
         rng,
         exclude: used,
@@ -337,7 +337,7 @@ export function generateBoard(options: GenerateBoardOptions): Board {
     blockRows: puzzle.blockRows,
     blockCols: puzzle.blockCols,
     topics: [...options.topics],
-    taskDifficulty: options.taskDifficulty,
+    level: options.level,
     boardDifficulty: options.boardDifficulty,
     cells,
     solution,

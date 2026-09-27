@@ -7,8 +7,9 @@
  */
 import { createRng } from '../core/rng.ts';
 import { allTemplates, taskRegistry } from '../core/tasks/registry.ts';
-import type { Difficulty, Topic } from '../core/tasks/types.ts';
-import { ALL_TOPICS, taskKey, templateCovers } from '../core/tasks/types.ts';
+import { topicLabel } from '../core/tasks/topics.ts';
+import type { Level, Topic } from '../core/tasks/types.ts';
+import { isLevel, taskKey, templateCovers } from '../core/tasks/types.ts';
 
 function flag(name: string): string | undefined {
   const prefix = `--${name}=`;
@@ -22,18 +23,20 @@ function hasFlag(name: string): boolean {
 
 const seed = flag('seed') ?? `demo-${Date.now()}`;
 const count = Number(flag('antall') ?? 10);
-const rawDifficulty = Number(flag('nivaa') ?? 3);
-const maxDifficulty: Difficulty =
-  rawDifficulty === 1 ? 1 : rawDifficulty === 2 ? 2 : 3;
-const topics: readonly Topic[] = (flag('temaer') ?? '')
+const rawLevel = flag('nivaa') ?? 'middels';
+const level: Level = isLevel(rawLevel) ? rawLevel : 'middels';
+const valgteTemaer: readonly Topic[] = (flag('temaer') ?? '')
   .split(',')
   .map((part) => part.trim())
-  .filter((part): part is Topic => part === 'derivasjon' || part === 'funksjoner');
-const activeTopics = topics.length > 0 ? topics : ALL_TOPICS;
+  .filter((part) => part.length > 0);
+const activeTopics =
+  valgteTemaer.length > 0
+    ? valgteTemaer
+    : taskRegistry.topicsForLevel(level).map((topic) => topic.id);
 
 function printTasks(): void {
   console.log(`Seed: ${seed}`);
-  console.log(`Temaer: ${activeTopics.join(', ')}   Maks nivå: ${maxDifficulty}`);
+  console.log(`Nivå: ${level}   Temaer: ${activeTopics.map(topicLabel).join(', ')}`);
   console.log('='.repeat(72));
 
   const rng = createRng(seed);
@@ -43,7 +46,7 @@ function printTasks(): void {
     const targetAnswer = rng.int(1, 9);
     const task = taskRegistry.generateTask({
       topics: activeTopics,
-      maxDifficulty,
+      level,
       targetAnswer,
       rng,
       exclude: used,
@@ -70,8 +73,8 @@ function printTasks(): void {
 
 function printStats(): void {
   const iterations = 300;
-  console.log('Mal                 nivå  dekker svar        null-rate');
-  console.log('-'.repeat(60));
+  console.log('Mal                  nivå        dekker svar        null-rate');
+  console.log('-'.repeat(68));
 
   for (const template of allTemplates) {
     const covered = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter((target) =>
@@ -91,7 +94,7 @@ function printStats(): void {
 
     const rate = ((nulls / attempts) * 100).toFixed(1);
     console.log(
-      `${template.id.padEnd(20)}${String(template.difficulty).padEnd(6)}${covered
+      `${template.id.padEnd(21)}${template.level.padEnd(12)}${covered
         .join('')
         .padEnd(19)}${rate} %`,
     );

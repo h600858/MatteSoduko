@@ -121,3 +121,55 @@ export function expLatex(a: number, b: number, variable = 'x'): string {
   const exponent = b === 1 ? variable : b === -1 ? `-${variable}` : `${b}${variable}`;
   return `${coef}e^{${exponent}}`;
 }
+
+function gcd(a: number, b: number): number {
+  let x = Math.abs(a);
+  let y = Math.abs(b);
+  while (y !== 0) {
+    const rest = x % y;
+    x = y;
+    y = rest;
+  }
+  return x === 0 ? 1 : x;
+}
+
+/**
+ * Forkortet brøk som LaTeX: "3", "-2", "\frac{1}{3}".
+ *
+ * Trengs fordi antideriverte gir brøkkoeffisienter. Uten denne ville
+ * koeffisienten blitt skrevet ut som et rått flyttall.
+ */
+export function fractionLatex(numerator: number, denominator: number): string {
+  if (numerator === 0) return '0';
+  const tegn = numerator < 0 !== denominator < 0 ? -1 : 1;
+  const felles = gcd(numerator, denominator);
+  const teller = Math.abs(numerator) / felles;
+  const nevner = Math.abs(denominator) / felles;
+  const prefiks = tegn < 0 ? '-' : '';
+  return nevner === 1 ? `${prefiks}${teller}` : `${prefiks}\\frac{${teller}}{${nevner}}`;
+}
+
+export interface RationalTerm {
+  numerator: number;
+  denominator: number;
+  /** Tom streng for konstantledd. */
+  body: string;
+}
+
+/** Polynom der koeffisientene kan være brøker: "\frac{1}{3}x^3 - 2x". */
+export function rationalPolyLatex(terms: readonly RationalTerm[]): string {
+  let ut = '';
+  for (const term of terms) {
+    if (term.numerator === 0) continue;
+    const negativ = term.numerator < 0 !== term.denominator < 0;
+    const absolutt = fractionLatex(Math.abs(term.numerator), Math.abs(term.denominator));
+    const koeffisient = absolutt === '1' && term.body !== '' ? '' : absolutt;
+    const tekst = `${koeffisient}${term.body}`;
+    if (ut === '') {
+      ut = `${negativ ? '-' : ''}${tekst}`;
+    } else {
+      ut += ` ${negativ ? '-' : '+'} ${tekst}`;
+    }
+  }
+  return ut === '' ? '0' : ut;
+}

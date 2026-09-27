@@ -7,7 +7,7 @@
  * evaluering av uttrykk og rotberegning. Malen leverer bare uttrykket den
  * faktisk skriver ut til spilleren.
  */
-import { derivative, evaluate, polynomialRoot } from 'mathjs';
+import { derivative, evaluate, parse, polynomialRoot } from 'mathjs';
 
 /** Toleranse for flyttallssammenligning. Alle fasitsvar er heltall 1..9. */
 export const EPS = 1e-9;
@@ -50,6 +50,40 @@ export function realQuadraticRoots(a: number, b: number, c: number): number[] {
     throw new Error('polynomialRoot returnerte ikke en liste');
   }
   return roots.filter((root): root is number => typeof root === 'number' && Number.isFinite(root));
+}
+
+/**
+ * Numerisk integrasjon med Simpsons metode.
+ *
+ * mathjs kan ikke integrere symbolsk, så integralmalene kan ikke verifiseres
+ * med en antiderivert. I stedet evalueres integranden i mange punkter og
+ * summeres. Det er fortsatt uavhengig av malen: malen regner ut svaret fra en
+ * antiderivert den selv kjenner, mens denne bare ser på funksjonsverdiene.
+ */
+export function integrateNumerically(
+  expression: string,
+  from: number,
+  to: number,
+  steps = 2000,
+): number {
+  const n = steps % 2 === 0 ? steps : steps + 1;
+  const h = (to - from) / n;
+  const node = parse(expression);
+  const compiled = node.compile();
+
+  const at = (x: number): number => {
+    const value: unknown = compiled.evaluate({ x });
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      throw new Error(`integrateNumerically(${expression}): ikke et endelig tall i x = ${x}`);
+    }
+    return value;
+  };
+
+  let sum = at(from) + at(to);
+  for (let i = 1; i < n; i += 1) {
+    sum += at(from + i * h) * (i % 2 === 0 ? 2 : 4);
+  }
+  return (h / 3) * sum;
 }
 
 /**
