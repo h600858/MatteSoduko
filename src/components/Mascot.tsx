@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { dailyQuote } from '../../core/game/mascot.ts';
+import { MASCOT_NAME, dailyQuote } from '../../core/game/mascot.ts';
 
 /**
  * Manken tegnes som en krans av sirkler rundt ansiktet. Det gir den takkete
@@ -24,9 +24,9 @@ function ManeRing({ count, radius }: { count: number; radius: number }): React.J
   );
 }
 
-function Lion(): React.JSX.Element {
+export function Lion(): React.JSX.Element {
   return (
-    <svg viewBox="0 0 120 128" className="love" role="img" aria-label="Løven, lagmaskoten">
+    <svg viewBox="0 0 120 128" className="love" role="img" aria-label={`${MASCOT_NAME}, lagmaskoten`}>
       {/* Drakt */}
       <path
         d="M24 128c0-16 12-26 26-29h20c14 3 26 13 26 29z"
@@ -104,8 +104,8 @@ export function Mascot({ date }: MascotProps): React.JSX.Element {
         type="button"
         className="maskotknapp"
         onClick={() => setOpen((v) => !v)}
-        aria-label={open ? 'Skjul dagens utsagn' : 'Vis dagens utsagn'}
-        title="Dagens utsagn"
+        aria-label={open ? `Skjul det ${MASCOT_NAME} sier` : `Vis det ${MASCOT_NAME} sier`}
+        title={`${MASCOT_NAME} har noe på hjertet`}
       >
         <Lion />
       </button>

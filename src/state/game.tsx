@@ -43,9 +43,13 @@ export interface Settings {
   seed: string;
 }
 
+/** Skjermene appen kan stå på. Spillet vises når en økt er i gang. */
+export type View = 'hjem' | 'oppsett' | 'profil';
+
 export interface GameState {
   session: Session | null;
   settings: Settings;
+  view: View;
   noteMode: boolean;
   error: string | null;
 }
@@ -63,6 +67,8 @@ export const DEFAULT_SETTINGS: Settings = {
 };
 
 export type GameAction =
+  | { type: 'vis'; view: View }
+  | { type: 'nivaa'; level: Level }
   | {
       type: 'start';
       settings: Settings;
@@ -109,6 +115,7 @@ function reducer(state: GameState, action: GameAction): GameState {
         return {
           session: startSession({ board, mode: action.settings.mode, now: action.now }),
           settings: { ...action.settings, seed },
+          view: 'hjem',
           noteMode: false,
           error: null,
         };
@@ -117,12 +124,37 @@ function reducer(state: GameState, action: GameAction): GameState {
           error instanceof BoardGenerationError
             ? error.message
             : `Uventet feil under brettbygging: ${String(error)}`;
-        return { ...state, session: null, settings: action.settings, error: message };
+        return {
+          ...state,
+          session: null,
+          settings: action.settings,
+          view: 'oppsett',
+          error: message,
+        };
       }
     }
 
+    case 'vis':
+      // Går man til en annen skjerm, legges brettet bort. Det bankes inn av
+      // App-komponenten før det forsvinner.
+      return {
+        ...state,
+        view: action.view,
+        session: action.view === 'profil' ? state.session : null,
+        error: null,
+      };
+
+    case 'nivaa': {
+      // Bytte av nivå tar med seg temaene som finnes der.
+      const temaer = taskRegistry.topicsForLevel(action.level).map((topic) => topic.id);
+      return {
+        ...state,
+        settings: { ...state.settings, level: action.level, topics: temaer },
+      };
+    }
+
     case 'avslutt':
-      return { ...state, session: null, error: null };
+      return { ...state, session: null, view: 'oppsett', error: null };
 
     case 'velg':
       if (session === null) return state;
@@ -182,6 +214,7 @@ function reducer(state: GameState, action: GameAction): GameState {
 const initialState: GameState = {
   session: null,
   settings: DEFAULT_SETTINGS,
+  view: 'hjem',
   noteMode: false,
   error: null,
 };

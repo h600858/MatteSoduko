@@ -9,7 +9,9 @@ import {
 } from '../core/game/progress.ts';
 import type { Session } from '../core/game/session.ts';
 import { allTemplates } from '../core/tasks/registry.ts';
+import type { DailyBoard } from '../core/game/daily.ts';
 import { Board } from './components/Board.tsx';
+import { Home } from './components/Home.tsx';
 import { Hud } from './components/Hud.tsx';
 import { Mascot } from './components/Mascot.tsx';
 import { Setup } from './components/Setup.tsx';
@@ -30,7 +32,6 @@ export function App(): React.JSX.Element {
 
   const [progress, setProgress] = useState<Progress>(emptyProgress);
   const [progressWarning, setProgressWarning] = useState<string | null>(null);
-  const [showStats, setShowStats] = useState(false);
 
   // Øktene vi allerede har banket inn, slik at et brett ikke føres inn i
   // statistikken to ganger når komponenten tegnes på nytt.
@@ -106,7 +107,10 @@ export function App(): React.JSX.Element {
     forrigeØkt.current = session;
   }, [session, bankInn]);
 
-  const closeStats = useCallback(() => setShowStats(false), []);
+  const visHjem = useCallback(() => dispatch({ type: 'vis', view: 'hjem' }), [dispatch]);
+  const visProfil = useCallback(() => dispatch({ type: 'vis', view: 'profil' }), [dispatch]);
+  const visOppsett = useCallback(() => dispatch({ type: 'vis', view: 'oppsett' }), [dispatch]);
+
 
   // Den adaptive vektingen: statistikken gjøres om til vekter registeret
   // allerede tar imot. Regnes bare om når fremdriften faktisk har endret seg.
@@ -122,10 +126,30 @@ export function App(): React.JSX.Element {
     [dispatch, weights],
   );
 
+  /** Dagens brett starter med et ferdig oppsett, ikke via oppsettskjermen. */
+  const startDaily = useCallback(
+    (oppsett: DailyBoard) => {
+      dispatch({
+        type: 'start',
+        now: Date.now(),
+        weights,
+        settings: {
+          ...state.settings,
+          level: oppsett.level,
+          topics: oppsett.topics,
+          size: oppsett.size,
+          boardDifficulty: oppsett.boardDifficulty,
+          seed: oppsett.seed,
+        },
+      });
+    },
+    [dispatch, weights, state.settings],
+  );
+
   // Tastaturet er hovedinput. Lytteren ligger på vinduet, ikke på cellene, slik
   // at markøren ikke kan gå tapt i en klikkbar knapp.
   useEffect(() => {
-    if (session === null || showStats) return undefined;
+    if (session === null || state.view === 'profil') return undefined;
 
     const onKeyDown = (event: KeyboardEvent): void => {
       const target = event.target;
@@ -177,40 +201,61 @@ export function App(): React.JSX.Element {
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [session, dispatch, showStats]);
+  }, [session, dispatch, state.view]);
 
-  // Toppbaren og maskoten staar uansett hvilken skjerm som vises.
-  const skjerm = showStats ? (
-    <Profile progress={progress} warning={progressWarning} weights={weights} onClose={closeStats} />
-  ) : session === null ? (
-    <Setup
-      settings={state.settings}
-      error={state.error}
-      knownTemplates={Object.keys(progress.templates).length}
-      onStart={startBoard}
-    />
-  ) : (
-    <div className="app">
-      <Hud session={session} noteMode={state.noteMode} now={now} dispatch={dispatch} />
-      <main className="spillflate">
-        <Board
-          board={session.board}
-          selected={session.active}
-          onSelect={(row, col) => dispatch({ type: 'velg', row, col, now: Date.now() })}
-        />
-        <TaskPanel ref={panelRef} session={session} now={now} />
-      </main>
-    </div>
-  );
+  // Profilen ligger over alt annet. Ellers vises spillet naar en oekt er i
+  // gang, og hjem eller oppsett naar den ikke er det.
+  const iSpill = session !== null && state.view !== 'profil';
+
+  const skjerm =
+    state.view === 'profil' ? (
+      <Profile
+        progress={progress}
+        warning={progressWarning}
+        weights={weights}
+        onClose={visHjem}
+      />
+    ) : session !== null ? (
+      <div className="app">
+        <Hud session={session} noteMode={state.noteMode} now={now} dispatch={dispatch} />
+        <main className="spillflate">
+          <Board
+            board={session.board}
+            selected={session.active}
+            onSelect={(row, col) => dispatch({ type: 'velg', row, col, now: Date.now() })}
+          />
+          <TaskPanel ref={panelRef} session={session} now={now} />
+        </main>
+      </div>
+    ) : state.view === 'oppsett' ? (
+      <Setup
+        settings={state.settings}
+        error={state.error}
+        knownTemplates={Object.keys(progress.templates).length}
+        onStart={startBoard}
+      />
+    ) : (
+      <Home
+        progress={progress}
+        level={state.settings.level}
+        now={new Date(now)}
+        onLevelChange={(level) => dispatch({ type: 'nivaa', level })}
+        onStartDaily={startDaily}
+        onSetup={visOppsett}
+        onProfile={visProfil}
+      />
+    );
 
   return (
     <>
       <TopBar
-        onShowStats={showStats ? null : () => setShowStats(true)}
-        onNewBoard={session !== null && !showStats ? () => dispatch({ type: 'avslutt' }) : null}
+        onHome={state.view === 'hjem' && session === null ? null : visHjem}
+        onShowProfile={state.view === 'profil' ? null : visProfil}
+        onNewBoard={iSpill ? () => dispatch({ type: 'avslutt' }) : null}
       />
       {skjerm}
-      <Mascot />
+      {/* Paa hjem staar loeven allerede stort midt paa skjermen. */}
+      {!(state.view === 'hjem' && session === null) && <Mascot />}
     </>
   );
 }

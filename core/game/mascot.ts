@@ -9,6 +9,19 @@
  * alle med før noen gjentas.
  */
 
+/** Maskotens navn. Brukes i hilsenen, i snakkeboblen og i skjermleseretiketter. */
+export const MASCOT_NAME = 'Tallak';
+
+/** Hilsenen på introskjermen. Bytter etter tid på døgnet. */
+export function greeting(date: Date): string {
+  const time = date.getHours();
+  if (time < 5) return 'Sent oppe?';
+  if (time < 10) return 'God morgen!';
+  if (time < 17) return 'Hei!';
+  if (time < 22) return 'God kveld!';
+  return 'Sent oppe?';
+}
+
 export const QUOTES: readonly string[] = [
   'Du blir ikke bedre av å løse det du allerede kan.',
   'Feil svar er data. Noter hva som glapp, og gå videre.',

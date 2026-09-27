@@ -195,6 +195,23 @@ export function boardAward(config: ScoringConfig, input: BoardAwardInput): numbe
   return Math.round((input.rawPoints + bonus) * LEVEL_MULTIPLIER[input.level]);
 }
 
+/**
+ * Taket for et brett: alle celler riktig, ingen hint, ingen feil, og så raskt
+ * at både celletidsbonusen og bretttidsbonusen blir full.
+ *
+ * Brukes i oppsettet for å vise hva brettet er verdt før man starter. Det er
+ * et tak, ikke en forventning, og bør merkes deretter i teksten.
+ */
+export function maxBoardScore(
+  config: ScoringConfig,
+  taskCount: number,
+  level: Level,
+): number {
+  const perCelle = config.basePerCell + config.maxTimeBonus + config.noHintBonus;
+  const bonus = config.completionBonus + boardTimeBonus(config, 0, taskCount);
+  return Math.round((taskCount * perCelle + bonus) * LEVEL_MULTIPLIER[level]);
+}
+
 export interface Rank {
   id: string;
   label: string;

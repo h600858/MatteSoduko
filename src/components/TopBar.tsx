@@ -3,16 +3,28 @@
  * kommer seg videre fra, uansett hvor man er.
  */
 interface TopBarProps {
-  /** Vises til høyre. Null skjuler knappen, f.eks. når siden alt er åpen. */
-  onShowStats: (() => void) | null;
+  /** Null når man allerede står på hjemskjermen. */
+  onHome: (() => void) | null;
+  /** Null når profilen alt er åpen. */
+  onShowProfile: (() => void) | null;
   /** Vises når et brett er i gang. */
   onNewBoard?: (() => void) | null;
 }
 
-export function TopBar({ onShowStats, onNewBoard }: TopBarProps): React.JSX.Element {
+export function TopBar({
+  onHome,
+  onShowProfile,
+  onNewBoard,
+}: TopBarProps): React.JSX.Element {
   return (
     <header className="toppbar">
-      <span className="logo">
+      <button
+        type="button"
+        className="logo"
+        onClick={() => onHome?.()}
+        disabled={onHome === null}
+        aria-label="Til startsiden"
+      >
         <span className="logomerke" aria-hidden="true">
           <i />
           <i />
@@ -25,7 +37,7 @@ export function TopBar({ onShowStats, onNewBoard }: TopBarProps): React.JSX.Elem
           <i />
         </span>
         MatteSudoku
-      </span>
+      </button>
 
       <span className="fyll" />
 
@@ -34,8 +46,8 @@ export function TopBar({ onShowStats, onNewBoard }: TopBarProps): React.JSX.Elem
           Nytt brett
         </button>
       )}
-      {onShowStats !== null && (
-        <button type="button" className="toppknapp" onClick={onShowStats}>
+      {onShowProfile !== null && (
+        <button type="button" className="toppknapp" onClick={onShowProfile}>
           Profil
         </button>
       )}

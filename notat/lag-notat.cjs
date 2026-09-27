@@ -1,7 +1,11 @@
 /**
  * Bygger beslutningsnotatet for videre utvikling av MatteSudoku.
  *
+ *   npm install --no-save docx
  *   node notat/lag-notat.cjs
+ *
+ * docx installeres med --no-save med vilje: den trengs bare for å skrive dette
+ * notatet, og hører ikke hjemme blant appens avhengigheter.
  */
 const fs = require('node:fs');
 const path = require('node:path');

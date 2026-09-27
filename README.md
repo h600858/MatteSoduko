@@ -87,10 +87,10 @@ nesten-svart. Hele uttrykket ligger i `src/styles.css`, styrt av variabler
 Ingen skrifter lastes utenfra. Appen skal virke offline, så typografien bygger
 på systemfontene.
 
-Maskoten er en løve i inline SVG, tegnet i `src/components/Mascot.tsx`. Den
-viser ett utsagn per dag, valgt av en ren funksjon av datoen i
-`core/game/mascot.ts`, så teksten står stille gjennom dagen uten at noe må
-lagres.
+Maskoten heter Tallak og er en løve i inline SVG, tegnet i
+`src/components/Mascot.tsx`. Hun viser ett utsagn per dag, valgt av en ren
+funksjon av datoen i `core/game/mascot.ts`, så teksten står stille gjennom
+dagen uten at noe må lagres.
 
 ## Tastatur
 
@@ -146,3 +146,4 @@ Ikonet i `build/icon.png` er en plassholder som genereres av
 - [x] **M9** Designløft og maskot
 - [x] **M10** Fire vanskelighetsnivåer og datadrevet temaregister
 - [x] **M11** Poeng over tid og profilside
+- [x] **M12** Introskjerm, dagens brett og synlig maksscore

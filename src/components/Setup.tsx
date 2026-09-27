@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import type { BoardDifficulty } from '../../core/sudoku/generate.ts';
 import type { BoardSize } from '../../core/sudoku/grid.ts';
 import { BOARD_SIZES } from '../../core/sudoku/grid.ts';
+import { DEFAULT_SCORING, maxBoardScore } from '../../core/game/scoring.ts';
+import { holesForDifficulty } from '../../core/sudoku/generate.ts';
 import { taskRegistry } from '../../core/tasks/registry.ts';
 import type { Level, Topic } from '../../core/tasks/types.ts';
 import { LEVEL_INFO } from '../../core/tasks/types.ts';
@@ -54,6 +56,11 @@ export function Setup({
   };
 
   const ingenTemaer = draft.topics.length === 0;
+
+  // Hva brettet er verdt med perfekt spill. Vises som et tak, ikke som en
+  // forventning: full tidsbonus krever under 20 sekunder per celle uten hint.
+  const oppgaver = holesForDifficulty(draft.size, draft.boardDifficulty);
+  const tak = maxBoardScore(DEFAULT_SCORING, oppgaver, draft.level);
 
   return (
     <div className="oppsett">
@@ -206,6 +213,17 @@ export function Setup({
             cellene endre seg etter hvert som statistikken din vokser.
           </p>
         </fieldset>
+
+        <div className="potten">
+          <div>
+            <span className="pottetall">{tak.toLocaleString('nb-NO')}</span>
+            <span className="pottemerke">poeng å hente</span>
+          </div>
+          <p className="hjelpetekst">
+            {oppgaver} oppgaver · {LEVEL_INFO[draft.level].label.toLowerCase()}. Dette er
+            taket: alt riktig, ingen hint, og raskt nok til full tidsbonus.
+          </p>
+        </div>
 
         {ingenTemaer && <p className="feilmelding">Velg minst ett tema.</p>}
         {error !== null && <p className="feilmelding">{error}</p>}

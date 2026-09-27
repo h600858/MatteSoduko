@@ -983,3 +983,232 @@ button {
   color: var(--grå-600);
   margin-left: 8px;
 }
+
+/* ---------- Introskjerm ---------- */
+
+.hjem {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 28px 24px 80px;
+}
+
+.velkomst {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+.velkomstlove .love {
+  width: 128px;
+  filter: drop-shadow(0 6px 14px rgb(6 70 59 / 35%));
+}
+
+.velkomsttekst {
+  color: var(--hvit);
+  min-width: 0;
+}
+
+.hilsen {
+  margin: 0 0 4px;
+  font-size: 27px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.dagensord {
+  margin: 0;
+  font-size: 15px;
+  color: rgb(255 255 255 / 90%);
+}
+
+.velkomststatus {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: rgb(255 255 255 / 78%);
+}
+
+.dagenskort {
+  background: var(--hvit);
+  border-radius: var(--radius);
+  box-shadow: var(--skygge);
+  padding: 20px 24px;
+  margin-bottom: 16px;
+}
+
+.dagenstopp {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.dagenstopp h2 {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 800;
+}
+
+.merkelapp {
+  background: var(--merke-100);
+  color: var(--merke-800);
+  border: 1px solid var(--merke-200);
+  border-radius: 999px;
+  padding: 3px 11px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Nivåene som en rad med knapper, ikke en nedtrekksliste. */
+.nivaavelger {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 14px 0;
+}
+
+.nivaavelger button {
+  border: 2px solid var(--grå-200);
+  background: var(--hvit);
+  border-radius: 999px;
+  padding: 7px 15px;
+  font-weight: 650;
+  font-size: 14px;
+  color: var(--grå-600);
+}
+
+.nivaavelger button:hover {
+  border-color: var(--merke-300);
+}
+
+.nivaavelger button.aktiv {
+  border-color: var(--merke-600);
+  background: var(--merke-600);
+  color: var(--hvit);
+}
+
+.dagensfakta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 16px;
+}
+
+.dagensfakta > div {
+  flex: 1 1 110px;
+  background: var(--grå-50);
+  border: var(--kant);
+  border-radius: var(--radius-sm);
+  padding: 9px 13px;
+}
+
+.dagensfakta dt {
+  font-size: 11px;
+  color: var(--grå-600);
+}
+
+.dagensfakta dd {
+  margin: 3px 0 0;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.dagensresultat {
+  margin: 0 0 12px;
+  padding: 11px 14px;
+  background: var(--merke-100);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+}
+
+.dagenskort button {
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding: 11px 20px;
+  font-weight: 650;
+  background: var(--hvit);
+  color: var(--grå-800);
+  box-shadow: inset 0 -3px 0 rgb(20 24 26 / 14%), var(--skygge-lav);
+}
+
+.dagenskort button.start {
+  background: var(--merke-600);
+  color: var(--hvit);
+  box-shadow: inset 0 -4px 0 var(--merke-800), var(--skygge-lav);
+  font-size: 16px;
+  padding: 13px 26px;
+}
+
+.hjemvalg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.hjemkort {
+  flex: 1 1 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--hvit);
+  box-shadow: var(--skygge);
+  padding: 16px 20px;
+}
+
+.hjemkort:hover {
+  box-shadow: 0 4px 8px rgb(20 24 26 / 12%), 0 12px 28px rgb(20 24 26 / 12%);
+}
+
+.hjemkorttittel {
+  font-size: 17px;
+  font-weight: 800;
+}
+
+/* Logoen i toppbaren er en knapp som tar deg hjem. */
+.toppbar .logo {
+  border: 0;
+  background: none;
+  color: inherit;
+  padding: 0;
+  cursor: pointer;
+}
+
+.toppbar .logo:disabled {
+  cursor: default;
+}
+
+/* ---------- Potten i oppsettet ---------- */
+
+.potten {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 16px;
+  margin-top: 18px;
+  padding: 14px 18px;
+  background: var(--merke-100);
+  border-left: 4px solid var(--merke-600);
+  border-radius: var(--radius-sm);
+}
+
+.pottetall {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--merke-800);
+}
+
+.pottemerke {
+  font-size: 13px;
+  color: var(--merke-800);
+  margin-left: 7px;
+}
+
+.potten .hjelpetekst {
+  flex: 1 1 260px;
+  margin: 0;
+}
