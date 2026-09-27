@@ -1,7 +1,8 @@
 import type { Progress } from "../../core/game/progress.ts";
 import { overallStats, templateSummaries } from "../../core/game/progress.ts";
+import { parseRecordKey, streakView } from "../../core/game/records.ts";
 import { RANKS, nextRank, rankFor, rankProgress } from "../../core/game/scoring.ts";
-import { LEVEL_INFO } from "../../core/tasks/types.ts";
+import { LEVELS, LEVEL_INFO } from "../../core/tasks/types.ts";
 import { persistsToFile } from "../state/storage.ts";
 import { formatTime } from "./Hud.tsx";
 
@@ -49,6 +50,18 @@ export function Profile({
   const rang = rankFor(totals.totalPoints);
   const neste = nextRank(totals.totalPoints);
   const andel = rankProgress(totals.totalPoints);
+  const rekke = streakView(progress.streak, new Date());
+
+  // Rekordene, sortert etter nivå og deretter størrelse.
+  const rekorder = Object.entries(progress.records)
+    .map(([key, record]) => ({ key, record, parsed: parseRecordKey(key) }))
+    .sort((a, b) => {
+      // Ukjente nøkler havner bakerst i stedet for å bli skjult.
+      const na = a.parsed === null ? LEVELS.length : LEVELS.indexOf(a.parsed.level);
+      const nb = b.parsed === null ? LEVELS.length : LEVELS.indexOf(b.parsed.level);
+      if (na !== nb) return na - nb;
+      return (a.parsed?.size ?? 0) - (b.parsed?.size ?? 0);
+    });
 
   return (
     <div className="statistikk">
@@ -137,6 +150,15 @@ export function Profile({
               <dd>{formatTime(progress.lifetime.msPlayed)}</dd>
             </div>
             <div>
+              <dt>Dager på rad</dt>
+              <dd>
+                {rekke.current}
+                {rekke.longest > rekke.current && (
+                  <span className="bidel">lengste {rekke.longest}</span>
+                )}
+              </dd>
+            </div>
+            <div>
               <dt>Celler riktig</dt>
               <dd>
                 {totals.cellsCorrect} av {totals.cellsAttempted}
@@ -151,6 +173,42 @@ export function Profile({
               <dd>{totals.mistakes}</dd>
             </div>
           </dl>
+
+          {rekorder.length > 0 && (
+            <>
+              <h2>Personlige rekorder</h2>
+              <p className="hjelpetekst">
+                Bare fullførte brett teller. Beste poengsum og beste tid holdes hver for
+                seg, så du kan slå tiden din uten å miste poengrekorden.
+              </p>
+              <div className="tabellramme">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Nivå</th>
+                      <th>Brett</th>
+                      <th>Beste poeng</th>
+                      <th>Beste tid</th>
+                      <th>Sist satt</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rekorder.map(({ key, record, parsed }) => (
+                      <tr key={key}>
+                        <td>{parsed === null ? key : LEVEL_INFO[parsed.level].label}</td>
+                        <td>{parsed === null ? "–" : `${parsed.size}×${parsed.size}`}</td>
+                        <td>
+                          <strong>{record.points.toLocaleString("nb-NO")}</strong>
+                        </td>
+                        <td>{formatTime(record.durationMs)}</td>
+                        <td>{formatDate(record.finishedAt)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
 
           {rows.length > 0 && (
             <>

@@ -3,6 +3,7 @@ import type { DailyBoard } from '../../core/game/daily.ts';
 import { dailyBoard, dailyPlayed, dailyResult } from '../../core/game/daily.ts';
 import { MASCOT_NAME, dailyQuote, greeting } from '../../core/game/mascot.ts';
 import type { Progress } from '../../core/game/progress.ts';
+import { streakView } from '../../core/game/records.ts';
 import { DEFAULT_SCORING, maxBoardScore, rankFor } from '../../core/game/scoring.ts';
 import { holesForDifficulty } from '../../core/sudoku/generate.ts';
 import { taskRegistry } from '../../core/tasks/registry.ts';
@@ -38,6 +39,7 @@ export function Home({
   const oppgaver = holesForDifficulty(oppsett.size, oppsett.boardDifficulty);
   const tak = maxBoardScore(DEFAULT_SCORING, oppgaver, level);
   const rang = rankFor(progress.lifetime.points);
+  const rekke = streakView(progress.streak, now);
 
   return (
     <div className="hjem">
@@ -54,6 +56,14 @@ export function Home({
             <p className="velkomststatus">
               {progress.lifetime.points.toLocaleString('nb-NO')} poeng · {rang.label} ·{' '}
               {progress.lifetime.boardsPlayed} brett spilt
+            </p>
+          )}
+          {rekke.current > 0 && (
+            <p className={`rekke ${rekke.atRisk ? 'fare' : ''}`}>
+              <span className="rekketall">{rekke.current}</span>
+              {rekke.current === 1 ? ' dag på rad' : ' dager på rad'}
+              {rekke.atRisk ? ' · spill i dag for å holde den' : ''}
+              {rekke.longest > rekke.current ? ` · lengste ${rekke.longest}` : ''}
             </p>
           )}
         </div>

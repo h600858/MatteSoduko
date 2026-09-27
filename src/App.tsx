@@ -7,6 +7,9 @@ import {
   sessionRecord,
   wasAttempted,
 } from '../core/game/progress.ts';
+import type { BoardSummary } from '../core/game/records.ts';
+import { summarizeBoard } from '../core/game/records.ts';
+import { DEFAULT_SCORING } from '../core/game/scoring.ts';
 import type { Session } from '../core/game/session.ts';
 import { allTemplates } from '../core/tasks/registry.ts';
 import type { DailyBoard } from '../core/game/daily.ts';
@@ -32,6 +35,17 @@ export function App(): React.JSX.Element {
 
   const [progress, setProgress] = useState<Progress>(emptyProgress);
   const [progressWarning, setProgressWarning] = useState<string | null>(null);
+  /** Oppsummeringen av brettet som nettopp ble banket inn. */
+  const [summary, setSummary] = useState<BoardSummary | null>(null);
+
+  /**
+   * Speil av fremdriften, lest i bankInn.
+   *
+   * Oppsummeringen må regnes ut mot fremdriften slik den var FØR brettet ble
+   * lagt inn. Leses den ut av setProgress-oppdatereren, ville det vært en
+   * sideeffekt i en funksjon React har lov til å kalle to ganger.
+   */
+  const progressRef = useRef(emptyProgress());
 
   // Øktene vi allerede har banket inn, slik at et brett ikke føres inn i
   // statistikken to ganger når komponenten tegnes på nytt.
@@ -43,6 +57,7 @@ export function App(): React.JSX.Element {
     let cancelled = false;
     void readProgress().then((loaded) => {
       if (cancelled) return;
+      progressRef.current = loaded.progress;
       setProgress(loaded.progress);
       setProgressWarning(loaded.warning);
     });
@@ -79,12 +94,17 @@ export function App(): React.JSX.Element {
     if (record.board.solvedCells === 0 && !record.timings.some(wasAttempted)) return;
 
     bankede.current.add(key);
-    setProgress((current) => {
-      const next = recordSession(current, record);
-      void writeProgress(next).then((error) => {
-        if (error !== null) setProgressWarning(error);
-      });
-      return next;
+
+    // Regnes ut mot fremdriften før brettet legges inn, ellers ville brettet
+    // vært med i sitt eget sammenligningsgrunnlag.
+    const før = progressRef.current;
+    setSummary(summarizeBoard(DEFAULT_SCORING, før, record.board));
+
+    const next = recordSession(før, record);
+    progressRef.current = next;
+    setProgress(next);
+    void writeProgress(next).then((error) => {
+      if (error !== null) setProgressWarning(error);
     });
   }, []);
 
@@ -121,6 +141,7 @@ export function App(): React.JSX.Element {
 
   const startBoard = useCallback(
     (settings: Settings) => {
+      setSummary(null);
       dispatch({ type: 'start', settings, now: Date.now(), weights });
     },
     [dispatch, weights],
@@ -129,6 +150,7 @@ export function App(): React.JSX.Element {
   /** Dagens brett starter med et ferdig oppsett, ikke via oppsettskjermen. */
   const startDaily = useCallback(
     (oppsett: DailyBoard) => {
+      setSummary(null);
       dispatch({
         type: 'start',
         now: Date.now(),
@@ -217,7 +239,13 @@ export function App(): React.JSX.Element {
       />
     ) : session !== null ? (
       <div className="app">
-        <Hud session={session} noteMode={state.noteMode} now={now} dispatch={dispatch} />
+        <Hud
+          session={session}
+          noteMode={state.noteMode}
+          now={now}
+          summary={summary}
+          dispatch={dispatch}
+        />
         <main className="spillflate">
           <Board
             board={session.board}

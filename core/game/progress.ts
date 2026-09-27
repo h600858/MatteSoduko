@@ -11,11 +11,18 @@
 import { z } from 'zod';
 import type { Level } from '../tasks/types.ts';
 import { LEVELS } from '../tasks/types.ts';
+import type { PersonalRecord } from './records.ts';
+import {
+  advanceStreak,
+  emptyStreak,
+  localDate,
+  updateRecords,
+} from './records.ts';
 import { boardAward } from './scoring.ts';
 import type { Session, TaskTiming } from './session.ts';
 import { boardElapsedMs, countTasks, taskTimings } from './session.ts';
 
-export const PROGRESS_VERSION = 3;
+export const PROGRESS_VERSION = 4;
 
 /**
  * Versjon 1 lagret oppgavenivået som tallet 1, 2 eller 3. Versjon 2 lagrer
@@ -82,9 +89,27 @@ export const lifetimeSchema = z.object({
 
 export type Lifetime = z.infer<typeof lifetimeSchema>;
 
+/** Dager på rad. Lagres for seg, av samme grunn som totalen. */
+export const streakSchema = z.object({
+  current: z.number().int().nonnegative(),
+  longest: z.number().int().nonnegative(),
+  lastDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),
+});
+
+/** Beste poengsum og beste tid per nivå og brettstørrelse. */
+export const personalRecordSchema = z.object({
+  points: z.number().int(),
+  durationMs: z.number().nonnegative(),
+  finishedAt: isoDate,
+  seed: z.string(),
+});
+
 export const progressSchema = z.object({
   version: z.literal(PROGRESS_VERSION),
   lifetime: lifetimeSchema,
+  streak: streakSchema,
+  /** Nøkkel er «nivå:størrelse», f.eks. «middels:9». */
+  records: z.record(z.string(), personalRecordSchema),
   templates: z.record(z.string(), templateStatsSchema),
   /** Nyeste først. */
   boards: z.array(boardResultSchema),
@@ -103,6 +128,8 @@ export function emptyProgress(): Progress {
   return {
     version: PROGRESS_VERSION,
     lifetime: emptyLifetime(),
+    streak: emptyStreak(),
+    records: {},
     templates: {},
     boards: [],
   };
@@ -168,6 +195,14 @@ const v1Schema = z.object({
   ),
 });
 
+/** Versjon 3: total på plass, men verken rekke eller rekorder. */
+const v3Schema = z.object({
+  version: z.literal(3),
+  lifetime: lifetimeSchema,
+  templates: z.record(z.string(), templateStatsSchema),
+  boards: z.array(boardResultSchema),
+});
+
 /** Versjon 2: skolenivå på plass, men fortsatt ingen total. */
 const v2Schema = z.object({
   version: z.literal(2),
@@ -216,6 +251,30 @@ export function migrate(data: unknown): unknown {
       ),
       templates: v2.data.templates,
       boards: v2.data.boards,
+    };
+  }
+
+  const v3 = v3Schema.safeParse(current);
+  if (v3.success) {
+    // Rekke og rekorder fantes ikke før versjon 4. De bygges av brettene vi
+    // fortsatt har. Er historikken kappet, er noen gamle dager tapt, men det
+    // er bedre enn å starte på null.
+    const eldsteFørst = [...v3.data.boards].reverse();
+
+    let streak = emptyStreak();
+    let records: Record<string, PersonalRecord> = {};
+    for (const board of eldsteFørst) {
+      streak = advanceStreak(streak, localDate(new Date(board.finishedAt)));
+      records = updateRecords(records, board).records;
+    }
+
+    current = {
+      version: 4,
+      lifetime: v3.data.lifetime,
+      streak,
+      records,
+      templates: v3.data.templates,
+      boards: v3.data.boards,
     };
   }
 
@@ -303,6 +362,11 @@ export function recordSession(progress: Progress, record: SessionRecord): Progre
     };
   }
 
+  // Rekken teller dager, ikke brett. Flere brett samme dag er én dag.
+  const spiltDato = localDate(new Date(record.board.finishedAt));
+  const streak = advanceStreak(progress.streak, spiltDato);
+  const { records } = updateRecords(progress.records, record.board);
+
   return {
     version: PROGRESS_VERSION,
     lifetime: {
@@ -312,6 +376,8 @@ export function recordSession(progress: Progress, record: SessionRecord): Progre
       cellsSolved: progress.lifetime.cellsSolved + record.board.solvedCells,
       msPlayed: progress.lifetime.msPlayed + record.board.durationMs,
     },
+    streak,
+    records,
     templates,
     boards: [record.board, ...progress.boards].slice(0, MAX_BOARD_HISTORY),
   };

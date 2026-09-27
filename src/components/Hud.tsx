@@ -6,6 +6,7 @@ import {
   countTasks,
   unsolvedCount,
 } from '../../core/game/session.ts';
+import type { BoardSummary } from '../../core/game/records.ts';
 import { topicLabel } from '../../core/tasks/topics.ts';
 import { LEVEL_INFO } from '../../core/tasks/types.ts';
 import type { GameAction } from '../state/game.tsx';
@@ -18,14 +19,65 @@ export function formatTime(ms: number): string {
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
+/**
+ * Det som vises når brettet er over.
+ *
+ * Målestokkene er bevisst ærlige: andelen av det mulige er regnet ut av
+ * poengreglene, og persentilen måles mot dine egne tidligere brett. Ingen av
+ * dem later som om de vet hva andre har fått.
+ */
+function Oppsummering({ summary }: { summary: BoardSummary }): React.JSX.Element {
+  const { board, shareOfMax: andel, percentile: persentil, record: beat } = summary;
+  const fullført = board.completed;
+
+  return (
+    <div className={`utfall ${fullført ? 'ok' : 'feil'}`}>
+      <p className="utfallhode">
+        {fullført
+          ? `Brettet er løst på ${formatTime(board.durationMs)}.`
+          : 'Livene er brukt opp.'}{' '}
+        <strong>{board.points.toLocaleString('nb-NO')} poeng</strong> til totalen.
+      </p>
+
+      <ul className="maalestokk">
+        {andel !== null && (
+          <li>
+            <strong>{Math.round(andel * 100)} %</strong> av det brettet kunne gitt
+          </li>
+        )}
+        {persentil !== null && (
+          <li>
+            Bedre enn <strong>{Math.round(persentil * 100)} %</strong> av dine egne{' '}
+            {LEVEL_INFO[board.level].label.toLowerCase()}-brett
+          </li>
+        )}
+        {beat !== null && (
+          <li className="rekord">
+            Ny personlig rekord
+            {beat === 'poeng' ? ' i poeng' : beat === 'tid' ? ' i tid' : ''}
+          </li>
+        )}
+      </ul>
+    </div>
+  );
+}
+
 interface HudProps {
   session: Session;
   noteMode: boolean;
   now: number;
+  /** Regnes ut ved innbanking, mot fremdriften slik den var før brettet. */
+  summary: BoardSummary | null;
   dispatch: Dispatch<GameAction>;
 }
 
-export function Hud({ session, noteMode, now, dispatch }: HudProps): React.JSX.Element {
+export function Hud({
+  session,
+  noteMode,
+  now,
+  summary,
+  dispatch,
+}: HudProps): React.JSX.Element {
   const { board, score, mode, config, status } = session;
   const remaining = unsolvedCount(session);
   const cellMs =
@@ -52,16 +104,7 @@ export function Hud({ session, noteMode, now, dispatch }: HudProps): React.JSX.E
         {score.mistakes > 0 && <span className="feil">{score.mistakes} feil</span>}
       </div>
 
-      {status === 'fullført' && (
-        <p className="utfall ok">
-          Brettet er løst på {formatTime(boardElapsedMs(session, now))} med {score.points} poeng.
-        </p>
-      )}
-      {status === 'tapt' && (
-        <p className="utfall feil">
-          Livene er brukt opp. Sluttsum {score.points} poeng.
-        </p>
-      )}
+      {status !== 'spiller' && summary !== null && <Oppsummering summary={summary} />}
 
       <div className="hudlinje knapper">
         <button

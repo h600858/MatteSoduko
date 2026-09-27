@@ -147,3 +147,4 @@ Ikonet i `build/icon.png` er en plassholder som genereres av
 - [x] **M10** Fire vanskelighetsnivåer og datadrevet temaregister
 - [x] **M11** Poeng over tid og profilside
 - [x] **M12** Introskjerm, dagens brett og synlig maksscore
+- [x] **M13** Dager på rad, personlige rekorder og målestokker
