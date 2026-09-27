@@ -28,7 +28,7 @@ core/     ren TypeScript, ingen import fra React eller Electron
   sudoku/       generering, løser og validering
   game/         motor, spilløkt, poengregler, fremdrift og adaptiv vekting
 electron/  hovedprosess (ESM) og preload (CJS, sandkasse på)
-src/       React-UI. All styling ligger i styles.css og er ment å kastes.
+src/       React-UI. All styling ligger i styles.css.
 tests/     vitest
 scripts/   CLI-verktøy
 ```
@@ -49,6 +49,21 @@ npm run dist:mac    # bygger macOS-dmg, må kjøres på en Mac
 npm run pack        # pakker ut appen uten installer, for rask kontroll
 npm run ikon        # regenererer plassholderikonet i build/
 ```
+
+## Utseende
+
+Hovedfargen er turkisgrønn og ligger på toppbaren og på sidene av flaten.
+Innholdet står i hvite kort oppå, resten av paletten er hvit, grå og
+nesten-svart. Hele uttrykket ligger i `src/styles.css`, styrt av variabler
+øverst i filen, så fargeprofilen kan endres ett sted.
+
+Ingen skrifter lastes utenfra. Appen skal virke offline, så typografien bygger
+på systemfontene.
+
+Maskoten er en løve i inline SVG, tegnet i `src/components/Mascot.tsx`. Den
+viser ett utsagn per dag, valgt av en ren funksjon av datoen i
+`core/game/mascot.ts`, så teksten står stille gjennom dagen uten at noe må
+lagres.
 
 ## Tastatur
 
@@ -101,3 +116,6 @@ Ikonet i `build/icon.png` er en plassholder som genereres av
 - [x] **M6** Persistens og statistikk
 - [x] **M7** Adaptiv vekting
 - [x] **M8** Pakking
+- [x] **M9** Designløft og maskot
+- [ ] **M10** Fire vanskelighetsnivåer og datadrevet temaregister
+- [ ] **M11** Poeng over tid og profilside

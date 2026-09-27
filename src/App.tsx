@@ -5,9 +5,11 @@ import { emptyProgress, recordSession, sessionRecord } from '../core/game/progre
 import { allTemplates } from '../core/tasks/registry.ts';
 import { Board } from './components/Board.tsx';
 import { Hud } from './components/Hud.tsx';
+import { Mascot } from './components/Mascot.tsx';
 import { Setup } from './components/Setup.tsx';
 import { Stats } from './components/Stats.tsx';
 import { TaskPanel } from './components/TaskPanel.tsx';
+import { TopBar } from './components/TopBar.tsx';
 import type { Settings } from './state/game.tsx';
 import { useGame, useGameDispatch } from './state/game.tsx';
 import { readProgress, writeProgress } from './state/storage.ts';
@@ -143,38 +145,19 @@ export function App(): React.JSX.Element {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [session, dispatch, showStats]);
 
-  if (showStats) {
-    return (
-      <Stats
-        progress={progress}
-        warning={progressWarning}
-        weights={weights}
-        onClose={closeStats}
-      />
-    );
-  }
-
-  if (session === null) {
-    return (
-      <Setup
-        settings={state.settings}
-        error={state.error}
-        knownTemplates={Object.keys(progress.templates).length}
-        onStart={startBoard}
-        onShowStats={() => setShowStats(true)}
-      />
-    );
-  }
-
-  return (
+  // Toppbaren og maskoten staar uansett hvilken skjerm som vises.
+  const skjerm = showStats ? (
+    <Stats progress={progress} warning={progressWarning} weights={weights} onClose={closeStats} />
+  ) : session === null ? (
+    <Setup
+      settings={state.settings}
+      error={state.error}
+      knownTemplates={Object.keys(progress.templates).length}
+      onStart={startBoard}
+    />
+  ) : (
     <div className="app">
-      <Hud
-        session={session}
-        noteMode={state.noteMode}
-        now={now}
-        dispatch={dispatch}
-        onShowStats={() => setShowStats(true)}
-      />
+      <Hud session={session} noteMode={state.noteMode} now={now} dispatch={dispatch} />
       <main className="spillflate">
         <Board
           board={session.board}
@@ -184,5 +167,16 @@ export function App(): React.JSX.Element {
         <TaskPanel ref={panelRef} session={session} now={now} />
       </main>
     </div>
+  );
+
+  return (
+    <>
+      <TopBar
+        onShowStats={showStats ? null : () => setShowStats(true)}
+        onNewBoard={session !== null && !showStats ? () => dispatch({ type: 'avslutt' }) : null}
+      />
+      {skjerm}
+      <Mascot />
+    </>
   );
 }

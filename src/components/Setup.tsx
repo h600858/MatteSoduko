@@ -12,7 +12,6 @@ interface SetupProps {
   /** Antall maler vi har statistikk for. Styrer om bryteren er verdt å bruke. */
   knownTemplates: number;
   onStart: (settings: Settings) => void;
-  onShowStats: () => void;
 }
 
 const DIFFICULTIES: readonly Difficulty[] = [1, 2, 3];
@@ -35,7 +34,6 @@ export function Setup({
   error,
   knownTemplates,
   onStart,
-  onShowStats,
 }: SetupProps): React.JSX.Element {
   const [draft, setDraft] = useState<Settings>(settings);
 
@@ -188,9 +186,6 @@ export function Setup({
         <div className="startknapper">
           <button type="submit" className="start" disabled={impossible}>
             Start
-          </button>
-          <button type="button" onClick={onShowStats}>
-            Statistikk
           </button>
         </div>
       </form>

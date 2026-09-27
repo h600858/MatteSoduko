@@ -1,25 +1,67 @@
 /*
- * Midlertidig, nøytral styling. Hele denne filen er ment å kastes når
- * designarbeidet begynner. Ingen farger eller former her er valgt av estetiske
- * grunner, bare for å gjøre tilstandene lesbare mens funksjonaliteten bygges.
+ * MatteSudoku, visuelt uttrykk.
+ *
+ * Hovedfargen er turkisgrønn og ligger på toppbaren og på sidene av flaten.
+ * Innholdet står i hvite kort oppå. Resten av paletten er hvit, grå og
+ * nesten-svart, slik at matematikken er det eneste som har farge utover
+ * merkefargen.
+ *
+ * Ingen skrifter lastes utenfra. Appen skal virke offline, så typografien
+ * bygger på systemfontene.
  */
 
 :root {
+  /* Merkefarge: turkis, trukket mot grønt. */
+  --merke-900: #06463b;
+  --merke-800: #07604f;
+  --merke-700: #0a7d68;
+  --merke-600: #0fa687;
+  --merke-500: #16bf9c;
+  --merke-300: #6fdcc4;
+  --merke-200: #a7e8d9;
+  --merke-100: #e0f6f0;
+
+  /* Nøytraler */
+  --hvit: #ffffff;
+  --grå-50: #f7f8f8;
+  --grå-100: #eef0f1;
+  --grå-200: #dfe3e5;
+  --grå-400: #a8b0b4;
+  --grå-600: #6b7479;
+  --grå-800: #343b3f;
+  --svart: #14181a;
+
+  /* Tilstander */
+  --feil: #d64545;
+  --feil-flate: #fdecec;
+  --ok: var(--merke-700);
+  --ok-flate: var(--merke-100);
+  --varsel: #b8860b;
+
+  /* Maskot */
+  --manke-mork: #b8690f;
+  --manke-lys: #d98324;
+  --pels: #f5c77e;
+  --snute: #fff3df;
+  --strek: #3a2a16;
+
+  /* Form */
+  --radius: 14px;
+  --radius-sm: 9px;
+  --skygge: 0 2px 4px rgb(20 24 26 / 8%), 0 8px 24px rgb(20 24 26 / 8%);
+  --skygge-lav: 0 1px 3px rgb(20 24 26 / 10%);
+  --kant: 1px solid var(--grå-200);
+
+  --toppbar-h: 60px;
+
+  /*
+   * Cellestørrelsen. Brett.tsx bruker den i grid-template-columns, så den må
+   * finnes her: uten den blir hele den regelen ugyldig og brettet faller
+   * sammen til én kolonne.
+   */
   --celle: 56px;
-  --ramme: #999;
-  --ramme-tykk: #333;
-  --flate: #fff;
-  --flate-dempet: #f2f2f2;
-  --flate-valgt: #d8e4f0;
-  --flate-beslektet: #f0f0f0;
-  --flate-samme: #e6ecdf;
-  --flate-feil: #f3d6d6;
-  --tekst: #1a1a1a;
-  --tekst-dempet: #666;
-  --laast: #444;
-  --feil: #a33;
-  --ok: #367;
-  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  font-family: system-ui, -apple-system, 'Segoe UI Variable Display', 'Segoe UI', sans-serif;
   color-scheme: light;
 }
 
@@ -27,11 +69,24 @@
   box-sizing: border-box;
 }
 
+html,
 body {
   margin: 0;
-  background: var(--flate-dempet);
-  color: var(--tekst);
-  font-size: 14px;
+  min-height: 100%;
+}
+
+body {
+  /* Merkefargen på sidene. Innholdet legger seg som hvite kort oppå. */
+  background: var(--merke-600);
+  color: var(--svart);
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.015em;
 }
 
 button {
@@ -39,182 +94,224 @@ button {
   cursor: pointer;
 }
 
+/* ---------- Knapper ---------- */
+
+/*
+ * Knappene har en mørkere underkant og synker ned når de trykkes. Det er
+ * grepet som gir den leketøysaktige, trykkbare følelsen.
+ */
+.hud button,
+.statistikktopp button,
+.startknapper button,
+.profil button {
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding: 10px 18px;
+  font-weight: 650;
+  background: var(--hvit);
+  color: var(--grå-800);
+  box-shadow: inset 0 -3px 0 rgb(20 24 26 / 14%), var(--skygge-lav);
+  transition: transform 0.06s ease, box-shadow 0.06s ease;
+}
+
+.hud button:active,
+.statistikktopp button:active,
+.startknapper button:active,
+.profil button:active {
+  transform: translateY(2px);
+  box-shadow: inset 0 -1px 0 rgb(20 24 26 / 14%);
+}
+
+.hud button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.start {
+  background: var(--merke-600);
+  color: var(--hvit);
+  box-shadow: inset 0 -4px 0 var(--merke-800), var(--skygge-lav);
+}
+
+.hud button.aktiv {
+  background: var(--merke-100);
+  color: var(--merke-800);
+  box-shadow: inset 0 -3px 0 var(--merke-300);
+}
+
+/* ---------- Toppbar ---------- */
+
+.toppbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  height: var(--toppbar-h);
+  background: var(--merke-700);
+  color: var(--hvit);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 24px;
+  box-shadow: 0 2px 10px rgb(6 70 59 / 35%);
+}
+
+.toppbar .logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.toppbar .logomerke {
+  display: grid;
+  grid-template-columns: repeat(3, 6px);
+  grid-template-rows: repeat(3, 6px);
+  gap: 2px;
+}
+
+.toppbar .logomerke i {
+  background: rgb(255 255 255 / 35%);
+  border-radius: 1px;
+}
+
+.toppbar .logomerke i:nth-child(1),
+.toppbar .logomerke i:nth-child(5),
+.toppbar .logomerke i:nth-child(9) {
+  background: var(--hvit);
+}
+
+.toppbar .fyll {
+  flex: 1;
+}
+
+.toppbar .toppknapp {
+  border: 0;
+  background: rgb(255 255 255 / 16%);
+  color: var(--hvit);
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-weight: 650;
+}
+
+.toppbar .toppknapp:hover {
+  background: rgb(255 255 255 / 26%);
+}
+
 /* ---------- Oppsettskjerm ---------- */
 
 .oppsett {
-  max-width: 640px;
+  max-width: 720px;
   margin: 0 auto;
-  padding: 32px 24px 64px;
+  padding: 28px 24px 140px;
 }
 
 .oppsett h1 {
-  margin: 0 0 4px;
-  font-size: 28px;
+  margin: 0 0 6px;
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--hvit);
 }
 
 .ingress {
-  margin: 0 0 24px;
-  color: var(--tekst-dempet);
+  margin: 0 0 22px;
+  color: rgb(255 255 255 / 88%);
   max-width: 52ch;
 }
 
+.oppsett form {
+  background: var(--hvit);
+  border-radius: var(--radius);
+  box-shadow: var(--skygge);
+  padding: 8px 22px 22px;
+}
+
 .oppsett fieldset {
-  border: 1px solid var(--ramme);
-  border-radius: 4px;
-  margin: 0 0 16px;
-  padding: 12px 16px;
-  background: var(--flate);
+  border: 0;
+  border-top: var(--kant);
+  margin: 0;
+  padding: 16px 0;
+}
+
+.oppsett fieldset:first-of-type {
+  border-top: 0;
 }
 
 .oppsett legend {
-  padding: 0 6px;
+  padding: 0;
+  font-weight: 700;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--grå-600);
+}
+
+/* Valgene er trykkbare fliser, ikke radioknapper på rad. */
+.oppsett label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 11px 14px;
+  border: 2px solid var(--grå-200);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color 0.1s ease, background 0.1s ease;
+}
+
+.oppsett label:hover {
+  border-color: var(--merke-300);
+  background: var(--grå-50);
+}
+
+.oppsett label:has(input:checked) {
+  border-color: var(--merke-600);
+  background: var(--merke-100);
   font-weight: 600;
 }
 
-.oppsett label {
-  display: block;
-  padding: 3px 0;
+.oppsett label input {
+  accent-color: var(--merke-600);
+  width: 17px;
+  height: 17px;
+  margin: 0;
+  flex: none;
 }
 
 .oppsett input[type='text'] {
   font: inherit;
-  padding: 6px 8px;
+  padding: 10px 12px;
   width: 100%;
-  border: 1px solid var(--ramme);
-  border-radius: 3px;
+  margin-top: 8px;
+  border: 2px solid var(--grå-200);
+  border-radius: var(--radius-sm);
 }
 
-.start {
-  padding: 10px 24px;
-  font-size: 16px;
-  border: 1px solid var(--ramme-tykk);
-  border-radius: 4px;
-  background: var(--flate);
-}
-
-.start:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.feilmelding {
-  border-left: 3px solid var(--feil);
-  background: var(--flate-feil);
-  padding: 8px 12px;
-  margin: 0 0 16px;
+.oppsett input[type='text']:focus {
+  outline: 0;
+  border-color: var(--merke-600);
 }
 
 .startknapper {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   align-items: center;
+  margin-top: 20px;
 }
 
-.startknapper button[type='button'] {
-  padding: 10px 16px;
-  border: 1px solid var(--ramme);
-  border-radius: 4px;
-  background: var(--flate);
+.start {
+  padding: 13px 30px;
+  font-size: 17px;
 }
 
-/* ---------- Statistikk ---------- */
-
-.statistikk {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 24px;
-}
-
-.statistikktopp {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 16px;
-}
-
-.statistikktopp h1 {
-  margin: 0;
-  font-size: 24px;
-}
-
-.statistikktopp button {
-  padding: 8px 16px;
-  border: 1px solid var(--ramme);
-  border-radius: 4px;
-  background: var(--flate);
-}
-
-.statistikk h2 {
-  font-size: 16px;
-  margin: 28px 0 4px;
-}
-
-.noekkeltall {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin: 0;
-}
-
-.noekkeltall > div {
-  flex: 1 1 140px;
-  background: var(--flate);
-  border: 1px solid var(--ramme);
-  border-radius: 4px;
+.feilmelding {
+  border-left: 4px solid var(--feil);
+  background: var(--feil-flate);
+  border-radius: var(--radius-sm);
   padding: 10px 14px;
-}
-
-.noekkeltall dt {
-  font-size: 12px;
-  color: var(--tekst-dempet);
-}
-
-.noekkeltall dd {
-  margin: 4px 0 0;
-  font-size: 20px;
-  font-weight: 700;
-}
-
-/* Brede tabeller skal rulle for seg selv, ikke dytte siden sidelengs. */
-.tabellramme {
-  overflow-x: auto;
-  background: var(--flate);
-  border: 1px solid var(--ramme);
-  border-radius: 4px;
-  margin-top: 8px;
-}
-
-.statistikk table {
-  border-collapse: collapse;
-  width: 100%;
-  font-size: 13px;
-}
-
-.statistikk th,
-.statistikk td {
-  text-align: left;
-  padding: 7px 12px;
-  border-bottom: 1px solid var(--flate-dempet);
-  white-space: nowrap;
-}
-
-.statistikk th {
-  font-size: 12px;
-  color: var(--tekst-dempet);
-  font-weight: 600;
-}
-
-.statistikk tbody tr:last-child td {
-  border-bottom: 0;
-}
-
-.statistikk td.ok {
-  color: var(--ok);
-}
-
-.statistikk td.feil {
-  color: var(--feil);
+  margin: 12px 0 0;
 }
 
 /* ---------- Spillskjerm ---------- */
@@ -222,34 +319,70 @@ button {
 .app {
   max-width: 1180px;
   margin: 0 auto;
-  padding: 16px 24px 48px;
+  padding: 20px 24px 140px;
 }
 
 .hud {
-  background: var(--flate);
-  border: 1px solid var(--ramme);
-  border-radius: 4px;
-  padding: 12px 16px;
-  margin-bottom: 16px;
+  background: var(--hvit);
+  border-radius: var(--radius);
+  box-shadow: var(--skygge);
+  padding: 14px 20px;
+  margin-bottom: 18px;
 }
 
 .hudlinje {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 14px;
   align-items: center;
   padding: 3px 0;
-  color: var(--tekst-dempet);
+  color: var(--grå-600);
+}
+
+/* Nøkkeltallene står som piller, så de leses raskt. */
+.hudlinje.tall {
+  gap: 10px;
+  font-size: 14px;
+  color: var(--grå-800);
+}
+
+.hudlinje.tall > span {
+  background: var(--grå-50);
+  border: var(--kant);
+  border-radius: 999px;
+  padding: 5px 13px;
+  font-weight: 600;
+}
+
+.hudlinje.tall > span.poeng {
+  background: var(--merke-600);
+  border-color: var(--merke-600);
+  color: var(--hvit);
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.hudlinje.tall > span.feil {
+  background: var(--feil-flate);
+  border-color: #f3caca;
+  color: var(--feil);
+}
+
+.hudlinje.smaatt {
+  font-size: 12px;
+  padding-top: 10px;
+  border-top: var(--kant);
+  margin-top: 10px;
 }
 
 .hudlinje.knapper {
   gap: 8px;
-  padding-top: 10px;
+  padding-top: 12px;
 }
 
 .hud .merke {
-  font-weight: 700;
-  color: var(--tekst);
+  font-weight: 800;
+  color: var(--svart);
 }
 
 .hud .seed {
@@ -264,93 +397,62 @@ button {
   color: var(--feil);
 }
 
-.hud .ferdig {
-  color: var(--ok);
-}
-
-.hud button {
-  padding: 6px 12px;
-  border: 1px solid var(--ramme);
-  border-radius: 3px;
-  background: var(--flate);
-}
-
-.hud button.aktiv {
-  background: var(--flate-valgt);
-  border-color: var(--ramme-tykk);
-}
-
-.hud button.midlertidig {
-  border-style: dashed;
-  color: var(--tekst-dempet);
-}
-
-.hudlinje.tall {
-  gap: 20px;
-  font-size: 15px;
-  color: var(--tekst);
-}
-
-.hudlinje.smaatt {
-  font-size: 12px;
-  padding-top: 8px;
-  border-top: 1px solid var(--flate-dempet);
-  margin-top: 8px;
-}
-
-.poeng {
-  font-weight: 700;
-  font-size: 18px;
-}
-
 .utfall {
-  margin: 8px 0 0;
-  padding: 8px 12px;
-  border-left: 3px solid currentColor;
-  background: var(--flate-dempet);
-}
-
-.utfall.ok {
-  color: var(--ok);
+  margin: 12px 0 0;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  font-weight: 650;
+  background: var(--ok-flate);
+  color: var(--merke-800);
 }
 
 .utfall.feil {
+  background: var(--feil-flate);
   color: var(--feil);
 }
 
 .tastatur {
-  margin: 10px 0 0;
-  color: var(--tekst-dempet);
+  margin: 12px 0 0;
+  color: var(--grå-600);
   font-size: 12px;
 }
 
 .spillflate {
   display: flex;
-  gap: 24px;
+  gap: 20px;
   align-items: flex-start;
   flex-wrap: wrap;
 }
 
 /* ---------- Brett ---------- */
 
+/*
+ * Rutenettet har to nivåer: tynne grå linjer mellom cellene, tykke svarte
+ * mellom blokkene. Er begge svarte, forsvinner blokkinndelingen visuelt.
+ * De tynne kommer fra gap-en, de tykke fra kanter inne i cellene.
+ */
 .brett {
   display: grid;
-  border: 2px solid var(--ramme-tykk);
-  background: var(--ramme-tykk);
+  background: var(--grå-200);
   gap: 1px;
   padding: 1px;
+  border: 3px solid var(--svart);
+  border-radius: var(--radius);
+  box-shadow: var(--skygge);
+  overflow: hidden;
 }
 
 .celle {
-  width: var(--celle);
-  height: var(--celle);
+  width: var(--celle, 56px);
+  height: var(--celle, 56px);
   border: 0;
-  background: var(--flate);
+  background: var(--hvit);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
   position: relative;
+  transition: background 0.08s ease;
 }
 
 /*
@@ -359,60 +461,64 @@ button {
  * skyve nabocellen unna.
  */
 .celle.kant-hoyre {
-  border-right: 3px solid var(--ramme-tykk);
+  border-right: 3px solid var(--svart);
 }
 
 .celle.kant-bunn {
-  border-bottom: 3px solid var(--ramme-tykk);
+  border-bottom: 3px solid var(--svart);
 }
 
 .celleverdi {
-  font-size: 22px;
+  font-size: 23px;
+  font-weight: 650;
+}
+
+.celle.status-låst {
+  background: var(--grå-100);
 }
 
 .celle.status-låst .celleverdi {
-  font-weight: 700;
-  color: var(--laast);
+  font-weight: 800;
+  color: var(--svart);
 }
 
 .celle.status-fylt .celleverdi {
-  color: var(--ok);
+  color: var(--merke-700);
 }
 
 .celle.status-konflikt {
-  background: var(--flate-feil);
+  background: var(--feil-flate);
 }
 
 .celle.status-konflikt .celleverdi {
   color: var(--feil);
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .celle.beslektet {
-  background: var(--flate-beslektet);
+  background: var(--grå-50);
 }
 
 .celle.samme-tall {
-  background: var(--flate-samme);
+  background: var(--merke-100);
 }
 
 .celle.valgt {
-  background: var(--flate-valgt);
-  outline: 2px solid var(--ramme-tykk);
-  outline-offset: -2px;
+  background: var(--merke-200);
+  outline: 3px solid var(--merke-700);
+  outline-offset: -3px;
+  z-index: 1;
 }
 
-/*
- * Markeringen av den valgte cellen skal ikke skjule at cellen er feil. Uten
- * denne regelen ser cellen man står i riktig ut, nettopp mens man retter den.
- */
+/* Markeringen av den valgte cellen skal ikke skjule at cellen er feil. */
 .celle.status-konflikt.valgt {
-  background: var(--flate-feil);
+  background: var(--feil-flate);
+  outline-color: var(--feil);
 }
 
 .oppgavemerke {
-  color: var(--tekst-dempet);
-  font-size: 16px;
+  color: var(--grå-400);
+  font-size: 17px;
   font-style: italic;
 }
 
@@ -422,7 +528,7 @@ button {
   width: 100%;
   height: 100%;
   font-size: 10px;
-  color: var(--tekst-dempet);
+  color: var(--grå-600);
 }
 
 .notat {
@@ -434,61 +540,74 @@ button {
 /* ---------- Oppgavepanel ---------- */
 
 .oppgavepanel {
-  flex: 1 1 340px;
+  flex: 1 1 360px;
   min-width: 320px;
-  background: var(--flate);
-  border: 1px solid var(--ramme);
-  border-radius: 4px;
-  padding: 16px 20px;
+  background: var(--hvit);
+  border-radius: var(--radius);
+  box-shadow: var(--skygge);
+  padding: 20px 24px;
 }
 
 .oppgavepanel h2 {
   margin: 0 0 4px;
   font-size: 15px;
+  font-weight: 700;
 }
 
 .malid {
-  margin: 0 0 12px;
-  color: var(--tekst-dempet);
+  margin: 0 0 14px;
+  color: var(--grå-600);
   font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
   font-size: 12px;
 }
 
 .matte {
-  margin: 16px 0;
+  margin: 18px 0;
+  padding: 18px 12px;
+  background: var(--grå-50);
+  border-radius: var(--radius-sm);
   overflow-x: auto;
+  font-size: 19px;
 }
 
 .latexkilde {
-  background: var(--flate-dempet);
-  padding: 8px;
+  background: var(--grå-50);
+  border-radius: var(--radius-sm);
+  padding: 10px;
   overflow-x: auto;
 }
 
 .spørsmål {
-  font-size: 16px;
+  font-size: 17px;
+  font-weight: 650;
   margin: 16px 0 8px;
 }
 
 .hjelpetekst,
 .tomtekst {
-  color: var(--tekst-dempet);
-  font-size: 12px;
+  color: var(--grå-600);
+  font-size: 13px;
+}
+
+.lost {
+  color: var(--ok);
+  font-weight: 700;
 }
 
 .hint {
-  margin: 16px 0 0;
-  padding: 12px 16px;
-  background: var(--flate-dempet);
-  border-left: 3px solid var(--ramme-tykk);
+  margin: 18px 0 0;
+  padding: 14px 18px;
+  background: var(--merke-100);
+  border-left: 4px solid var(--merke-600);
+  border-radius: var(--radius-sm);
 }
 
 .hint h3 {
   margin: 0 0 8px;
-  font-size: 13px;
+  font-size: 12px;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--tekst-dempet);
+  letter-spacing: 0.06em;
+  color: var(--merke-800);
 }
 
 .hint ol {
@@ -503,17 +622,12 @@ button {
 
 .fasit {
   margin: 10px 0 0;
-  font-weight: 700;
-}
-
-.lost {
-  color: var(--ok);
-  font-weight: 600;
+  font-weight: 800;
 }
 
 .oppgavepanel:focus {
-  outline: 2px solid var(--ramme-tykk);
-  outline-offset: 2px;
+  outline: 3px solid var(--merke-600);
+  outline-offset: 3px;
 }
 
 .cellestatus {
@@ -521,17 +635,219 @@ button {
   gap: 16px;
   margin-top: 20px;
   padding-top: 12px;
-  border-top: 1px solid var(--ramme);
-  color: var(--tekst-dempet);
+  border-top: var(--kant);
+  color: var(--grå-600);
   font-size: 12px;
 }
 
-/* Maler den adaptive vektingen løfter eller demper tydelig. */
+/* ---------- Statistikk og profil ---------- */
+
+.statistikk {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 24px 24px 140px;
+}
+
+.statistikktopp {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.statistikktopp h1 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--hvit);
+}
+
+.statistikk h2 {
+  font-size: 15px;
+  margin: 26px 0 6px;
+  color: var(--hvit);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.statistikk > .hjelpetekst,
+.statistikk > .tomtekst {
+  color: rgb(255 255 255 / 85%);
+}
+
+.noekkeltall {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0;
+}
+
+.noekkeltall > div {
+  flex: 1 1 150px;
+  background: var(--hvit);
+  border-radius: var(--radius);
+  box-shadow: var(--skygge-lav);
+  padding: 13px 16px;
+}
+
+.noekkeltall dt {
+  font-size: 12px;
+  color: var(--grå-600);
+}
+
+.noekkeltall dd {
+  margin: 4px 0 0;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.tabellramme {
+  overflow-x: auto;
+  background: var(--hvit);
+  border-radius: var(--radius);
+  box-shadow: var(--skygge);
+  margin-top: 8px;
+}
+
+.statistikk table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+}
+
+.statistikk th,
+.statistikk td {
+  text-align: left;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--grå-100);
+  white-space: nowrap;
+}
+
+.statistikk th {
+  font-size: 11px;
+  color: var(--grå-600);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--grå-50);
+}
+
+.statistikk tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.statistikk td.ok {
+  color: var(--ok);
+  font-weight: 650;
+}
+
+.statistikk td.feil {
+  color: var(--feil);
+  font-weight: 650;
+}
+
 .statistikk td.vekt-opp {
   color: var(--feil);
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .statistikk td.vekt-ned {
-  color: var(--tekst-dempet);
+  color: var(--grå-400);
+}
+
+/* ---------- Maskot ---------- */
+
+.maskot {
+  position: fixed;
+  right: 20px;
+  bottom: 18px;
+  z-index: 30;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.maskot > * {
+  pointer-events: auto;
+}
+
+.maskotknapp {
+  border: 0;
+  background: none;
+  padding: 0;
+  line-height: 0;
+  filter: drop-shadow(0 4px 10px rgb(6 70 59 / 35%));
+  transition: transform 0.12s ease;
+}
+
+.maskotknapp:hover {
+  transform: translateY(-3px);
+}
+
+.love {
+  width: 96px;
+  height: auto;
+  display: block;
+}
+
+.snakkeboble {
+  position: relative;
+  max-width: 270px;
+  background: var(--hvit);
+  border-radius: var(--radius);
+  box-shadow: var(--skygge);
+  padding: 14px 34px 14px 16px;
+  margin-bottom: 16px;
+}
+
+.snakkeboble p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--grå-800);
+}
+
+/* Halen på boblen, pekende mot løven. */
+.snakkeboble::after {
+  content: '';
+  position: absolute;
+  right: -8px;
+  bottom: 16px;
+  width: 16px;
+  height: 16px;
+  background: var(--hvit);
+  transform: rotate(45deg);
+  border-radius: 3px;
+}
+
+.boblelukk {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  border: 0;
+  background: none;
+  color: var(--grå-400);
+  font-size: 19px;
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: 6px;
+}
+
+.boblelukk:hover {
+  background: var(--grå-100);
+  color: var(--grå-800);
+}
+
+/* På smale vinduer skal ikke løven dekke brettet. */
+@media (max-width: 860px) {
+  .love {
+    width: 68px;
+  }
+
+  .snakkeboble {
+    max-width: 190px;
+    font-size: 13px;
+  }
 }
