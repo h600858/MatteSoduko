@@ -148,3 +148,4 @@ Ikonet i `build/icon.png` er en plassholder som genereres av
 - [x] **M11** Poeng over tid og profilside
 - [x] **M12** Introskjerm, dagens brett og synlig maksscore
 - [x] **M13** Dager på rad, personlige rekorder og målestokker
+- [x] **M14** Hint med fagstoff, regeltabell og kilder

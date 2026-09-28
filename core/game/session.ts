@@ -16,6 +16,10 @@ import {
   setValue,
   toggleNote,
 } from './engine.ts';
+import type { Concept } from '../tasks/concepts.ts';
+import { conceptById } from '../tasks/concepts.ts';
+import type { TaskRegistry } from '../tasks/registry.ts';
+import { taskRegistry as defaultRegistry } from '../tasks/registry.ts';
 import type { ErrorMode, HintLevel, ScoreState, ScoringConfig } from './scoring.ts';
 import {
   DEFAULT_SCORING,
@@ -345,9 +349,14 @@ export function toggleActiveNote(session: Session, value: number): Session {
 }
 
 /**
- * Hint i to nivåer. Første nivå viser første løsningssteg, andre nivå viser
- * fasiten og resten av stegene. Begge koster poeng, og trekket skjer bare
- * første gang et nivå tas.
+ * Hint i tre nivåer, fra orientering til fasit:
+ *
+ *   1. Konseptet: hva slags oppgave dette er, med hele regeltabellen. Det er
+ *      ikke et steg i løsningen, så spilleren må fortsatt finne regelen selv.
+ *   2. Første løsningssteg.
+ *   3. Fasiten og resten av stegene.
+ *
+ * Hvert nivå koster poeng, og trekket skjer bare første gang nivået tas.
  */
 export function takeHint(session: Session): Session {
   if (session.status !== 'spiller' || session.active === null) return session;
@@ -358,9 +367,9 @@ export function takeHint(session: Session): Session {
 
   const index = cellIndex(session.board.size, row, col);
   const current = progressFor(session, index);
-  if (current.hintLevel >= 2) return session;
+  if (current.hintLevel >= 3) return session;
 
-  const level: 1 | 2 = current.hintLevel === 0 ? 1 : 2;
+  const level = (current.hintLevel + 1) as 1 | 2 | 3;
   const progress = withProgress(session, index, { hintLevel: level });
 
   return {
@@ -372,25 +381,35 @@ export function takeHint(session: Session): Session {
 
 export interface HintView {
   level: HintLevel;
-  /** Stegene spilleren har betalt for. */
+  /** Fagstoffet bak oppgaven. Fra nivå 1. */
+  concept: Concept | null;
+  /** Stegene spilleren har betalt for. Fra nivå 2. */
   steps: string[];
-  /** Fasit, bare på nivå 2. */
+  /** Fasit, bare på nivå 3. */
   answer: number | null;
 }
 
+const INGEN_HINT: HintView = { level: 0, concept: null, steps: [], answer: null };
+
 /** Hva hintpanelet skal vise for den aktive cellen. */
-export function hintView(session: Session): HintView {
+export function hintView(
+  session: Session,
+  registry: TaskRegistry = defaultRegistry,
+): HintView {
   const cell = activeCell(session);
-  if (cell === null || cell.task === null) {
-    return { level: 0, steps: [], answer: null };
-  }
+  if (cell === null || cell.task === null) return INGEN_HINT;
 
   const { hintLevel } = cellProgress(session, cell.row, cell.col);
-  if (hintLevel === 0) return { level: 0, steps: [], answer: null };
-  if (hintLevel === 1) {
-    return { level: 1, steps: cell.task.steps.slice(0, 1), answer: null };
+  if (hintLevel === 0) return INGEN_HINT;
+
+  const conceptId = registry.byId(cell.task.templateId)?.concept;
+  const concept = conceptId === undefined ? null : (conceptById(conceptId) ?? null);
+
+  if (hintLevel === 1) return { level: 1, concept, steps: [], answer: null };
+  if (hintLevel === 2) {
+    return { level: 2, concept, steps: cell.task.steps.slice(0, 1), answer: null };
   }
-  return { level: 2, steps: [...cell.task.steps], answer: cell.solution };
+  return { level: 3, concept, steps: [...cell.task.steps], answer: cell.solution };
 }
 
 /**

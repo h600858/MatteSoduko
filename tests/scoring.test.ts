@@ -53,24 +53,40 @@ describe('cellAward', () => {
     );
   });
 
-  it('mister hintbonusen etter første hint, men beholder tidsbonusen', () => {
+  it('mister hintbonusen etter konsepthintet, men beholder tidsbonusen', () => {
     expect(cellAward(config, { seconds: 5, hintLevel: 1 })).toBe(
       config.basePerCell + config.maxTimeBonus,
     );
   });
 
-  it('gir bare grunnpoeng når fasiten er vist', () => {
-    expect(cellAward(config, { seconds: 5, hintLevel: 2 })).toBe(config.basePerCell);
+  it('halverer tidsbonusen når et løsningssteg er vist', () => {
+    expect(cellAward(config, { seconds: 5, hintLevel: 2 })).toBe(
+      config.basePerCell + Math.round(config.maxTimeBonus / 2),
+    );
   });
 
-  it('belønner alltid et hintfritt svar mer enn et hjulpet', () => {
+  it('gir bare grunnpoeng når fasiten er vist', () => {
+    expect(cellAward(config, { seconds: 5, hintLevel: 3 })).toBe(config.basePerCell);
+  });
+
+  it('gir mindre uttelling for hvert hintnivå', () => {
     for (const seconds of [0, 10, 30, 60, 200]) {
-      const rent = cellAward(config, { seconds, hintLevel: 0 });
-      const hint1 = cellAward(config, { seconds, hintLevel: 1 });
-      const hint2 = cellAward(config, { seconds, hintLevel: 2 });
-      expect(rent).toBeGreaterThan(hint1);
-      expect(hint1).toBeGreaterThanOrEqual(hint2);
+      const nivaaer = ([0, 1, 2, 3] as const).map((hintLevel) =>
+        cellAward(config, { seconds, hintLevel }),
+      );
+      for (let i = 1; i < nivaaer.length; i += 1) {
+        expect(nivaaer[i], `nivå ${i} etter ${seconds} s`).toBeLessThanOrEqual(
+          nivaaer[i - 1] ?? 0,
+        );
+      }
+      // Et hintfritt svar skal alltid være strengt bedre enn et hjulpet.
+      expect(nivaaer[0]).toBeGreaterThan(nivaaer[3] ?? 0);
     }
+  });
+
+  it('gjør hvert hintnivå dyrere enn det forrige', () => {
+    expect(config.hintPenalty[1]).toBeLessThan(config.hintPenalty[2]);
+    expect(config.hintPenalty[2]).toBeLessThan(config.hintPenalty[3]);
   });
 });
 

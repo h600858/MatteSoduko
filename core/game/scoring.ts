@@ -10,16 +10,21 @@ import type { Level } from '../tasks/types.ts';
 /** Streng markerer feil med én gang og koster liv. Rolig venter til du sjekker. */
 export type ErrorMode = 'streng' | 'rolig';
 
-/** 0 = ingen hint brukt, 1 = første løsningssteg, 2 = fasit for cellen. */
-export type HintLevel = 0 | 1 | 2;
+/**
+ * 0 = ingen hint brukt
+ * 1 = konseptet: hva slags oppgave dette er, med regeltabellen
+ * 2 = første løsningssteg
+ * 3 = fasit og alle stegene
+ */
+export type HintLevel = 0 | 1 | 2 | 3;
 
 export interface ScoringConfig {
   /** Grunnpoeng for hver celle som løses riktig. */
   readonly basePerCell: number;
   /** Trekk for hvert feil svar. */
   readonly wrongPenalty: number;
-  /** Trekk for hint, per nivå. */
-  readonly hintPenalty: Readonly<Record<1 | 2, number>>;
+  /** Trekk for hint, per nivå. Konseptet er billigst, fasiten dyrest. */
+  readonly hintPenalty: Readonly<Record<1 | 2 | 3, number>>;
   /** Ekstra poeng for en celle løst uten hint. */
   readonly noHintBonus: number;
   /** Maks tidsbonus for én celle. */
@@ -43,7 +48,7 @@ export interface ScoringConfig {
 export const DEFAULT_SCORING: ScoringConfig = {
   basePerCell: 100,
   wrongPenalty: 40,
-  hintPenalty: { 1: 30, 2: 80 },
+  hintPenalty: { 1: 15, 2: 35, 3: 80 },
   noHintBonus: 25,
   maxTimeBonus: 50,
   fastSeconds: 20,
@@ -100,7 +105,11 @@ export interface CellAward {
 /** Poengene en riktig celle er verdt. */
 export function cellAward(config: ScoringConfig, { seconds, hintLevel }: CellAward): number {
   // Har man sett fasiten, er verken tid eller hintbonus fortjent.
-  if (hintLevel >= 2) return config.basePerCell;
+  if (hintLevel >= 3) return config.basePerCell;
+  // Et løsningssteg er en større hjelp enn bare regeltabellen.
+  if (hintLevel === 2) {
+    return config.basePerCell + Math.round(timeBonus(config, seconds) / 2);
+  }
   if (hintLevel === 1) return config.basePerCell + timeBonus(config, seconds);
   return config.basePerCell + timeBonus(config, seconds) + config.noHintBonus;
 }
@@ -134,7 +143,7 @@ export function chargeMistake(
 export function chargeHint(
   state: ScoreState,
   config: ScoringConfig,
-  level: 1 | 2,
+  level: 1 | 2 | 3,
 ): ScoreState {
   return {
     ...state,

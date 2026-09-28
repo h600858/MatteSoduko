@@ -32,6 +32,7 @@ const polynom: TaskTemplate = {
   id: 'int.polynom',
   topic: 'integrasjon',
   level: 'ultra',
+  concept: 'integrasjon.bestemt',
   build(target, rng): GeneratedTask | null {
     return attempt(() => {
       const nedre = rng.int(0, 2);
@@ -86,6 +87,7 @@ const potens: TaskTemplate = {
   id: 'int.potens',
   topic: 'integrasjon',
   level: 'ultra',
+  concept: 'integrasjon.bestemt',
   build(target, rng): GeneratedTask | null {
     return attempt(() => {
       const n = rng.int(1, 4);
@@ -126,6 +128,7 @@ const trigonometrisk: TaskTemplate = {
   id: 'int.trig',
   topic: 'integrasjon',
   level: 'ultra',
+  concept: 'integrasjon.bestemt',
   coversTarget() {
     return true;
   },
@@ -176,6 +179,7 @@ const areal: TaskTemplate = {
   id: 'int.areal',
   topic: 'integrasjon',
   level: 'ultra',
+  concept: 'integrasjon.bestemt',
   build(target, rng): GeneratedTask | null {
     return attempt(() => {
       // Differansen f - g settes til k*(x - p)(q - x), som har areal
@@ -240,6 +244,7 @@ const uegentlig: TaskTemplate = {
   id: 'int.uegentlig',
   topic: 'integrasjon',
   level: 'ultra',
+  concept: 'integrasjon.uegentlig',
   build(target, rng): GeneratedTask | null {
     const n = rng.pick(divisorsOf(target).filter((d) => d >= 1).map((d) => d + 1));
     if (n === undefined || n < 2) return null;

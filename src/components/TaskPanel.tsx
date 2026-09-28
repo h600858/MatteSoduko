@@ -1,5 +1,6 @@
 import katex from 'katex';
 import { forwardRef, useMemo } from 'react';
+import type { Concept } from '../../core/tasks/concepts.ts';
 import type { Session } from '../../core/game/session.ts';
 import { activeCell, cellElapsedMs, cellProgress, hintView } from '../../core/game/session.ts';
 import { formatTime } from './Hud.tsx';
@@ -45,6 +46,69 @@ export function prettifyStep(text: string): string {
     .replace(/\\qquad/g, '   ')
     .replace(/\^\{([^{}]*)\}/g, (_match, exponent: string) => SUPERSCRIPTS[exponent] ?? `^${exponent}`)
     .replace(/\^(-?\d)/g, (_match, exponent: string) => SUPERSCRIPTS[exponent] ?? `^${exponent}`);
+}
+
+/** LaTeX på én linje, til tabellceller. Faller tilbake til råteksten. */
+function Matte({ tex }: { tex: string }): React.JSX.Element {
+  const html = useMemo(() => {
+    try {
+      return katex.renderToString(tex, { throwOnError: false, output: 'html' });
+    } catch {
+      return null;
+    }
+  }, [tex]);
+
+  if (html === null) return <span>{tex}</span>;
+  return <span dangerouslySetInnerHTML={{ __html: html }} />;
+}
+
+/**
+ * Det første hintet: hva slags oppgave dette er, hele regeltabellen, og hvor
+ * man kan lese mer.
+ *
+ * Tabellen viser med vilje alle reglene, ikke bare den som passer. Å finne
+ * riktig regel er en del av oppgaven.
+ */
+function Konsept({ concept }: { concept: Concept }): React.JSX.Element {
+  return (
+    <div className="konsept">
+      <h4>{concept.title}</h4>
+      <p>{concept.intro}</p>
+
+      <p className="regeltittel">{concept.rulesHeading}</p>
+      <div className="regeltabell">
+        <table>
+          <tbody>
+            {concept.rules.map((rule, i) => (
+              <tr key={i}>
+                <th scope="row">{rule.name}</th>
+                <td>
+                  <Matte tex={rule.fn} />
+                </td>
+                <td>
+                  <Matte tex={rule.result} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <p className="veiledning">{concept.guidance}</p>
+
+      <p className="kildetittel">Les mer</p>
+      <ul className="kilder">
+        {concept.sources.map((source) => (
+          <li key={source.url}>
+            <a href={source.url} target="_blank" rel="noreferrer">
+              {source.label}
+            </a>
+            <span className="kildenote"> — {source.note}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 }
 
 /** Ett løsningssteg, som lesbar tekst. */
@@ -116,15 +180,31 @@ export const TaskPanel = forwardRef<HTMLElement, TaskPanelProps>(function TaskPa
 
           {hint.level > 0 && (
             <div className="hint">
-              <h3>{hint.level === 1 ? 'Hint, nivå 1' : 'Hint, nivå 2: fasit'}</h3>
-              <ol>
-                {hint.steps.map((step, index) => (
-                  <li key={index}>
-                    <StepText text={step} />
-                  </li>
-                ))}
-              </ol>
+              <h3>
+                {hint.level === 1
+                  ? 'Hint 1 av 3: hva slags oppgave'
+                  : hint.level === 2
+                    ? 'Hint 2 av 3: første steg'
+                    : 'Hint 3 av 3: fasit'}
+              </h3>
+
+              {hint.concept !== null && <Konsept concept={hint.concept} />}
+
+              {hint.steps.length > 0 && (
+                <ol className="losningssteg">
+                  {hint.steps.map((step, index) => (
+                    <li key={index}>
+                      <StepText text={step} />
+                    </li>
+                  ))}
+                </ol>
+              )}
+
               {hint.answer !== null && <p className="fasit">Svaret er {hint.answer}.</p>}
+
+              {hint.level < 3 && (
+                <p className="hjelpetekst">Trykk h igjen for mer hjelp.</p>
+              )}
             </div>
           )}
         </>

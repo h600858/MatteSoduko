@@ -83,6 +83,11 @@ export interface TaskTemplate {
   id: string;
   topic: Topic;
   level: Level;
+  /**
+   * Fagstoffet bak malen, fra core/tasks/concepts.ts. Brukes til det første
+   * hintet: hva slags oppgave dette er, og hvilke regler som gjelder.
+   */
+  concept: string;
   /** Returnerer null hvis ingen gyldige parametre finnes for dette svaret. */
   build(target: number, rng: Rng): GeneratedTask | null;
   /**

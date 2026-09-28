@@ -16,6 +16,7 @@ const enkel: TaskTemplate = {
   id: 'lik.enkel',
   topic: 'likninger',
   level: 'enkel',
+  concept: 'likninger.losning',
   build(target, rng): GeneratedTask | null {
     return attempt(() => {
       const a = rng.pick(nonZeroRange(2, 9));
@@ -54,6 +55,7 @@ const beggeSider: TaskTemplate = {
   id: 'lik.beggesider',
   topic: 'likninger',
   level: 'enkel',
+  concept: 'likninger.losning',
   build(target, rng): GeneratedTask | null {
     return attempt(() => {
       const a = rng.pick(nonZeroRange(2, 9));
@@ -99,6 +101,7 @@ const parentes: TaskTemplate = {
   id: 'lik.parentes',
   topic: 'likninger',
   level: 'enkel',
+  concept: 'likninger.losning',
   build(target, rng): GeneratedTask | null {
     return attempt(() => {
       const a = rng.pick(nonZeroRange(2, 8));
@@ -134,6 +137,7 @@ const brøk: TaskTemplate = {
   id: 'lik.brok',
   topic: 'likninger',
   level: 'enkel',
+  concept: 'likninger.losning',
   build(target, rng): GeneratedTask | null {
     return attempt(() => {
       const a = rng.int(2, 9);
@@ -171,6 +175,7 @@ const rekkefølge: TaskTemplate = {
   id: 'regn.rekkefolge',
   topic: 'likninger',
   level: 'enkel',
+  concept: 'likninger.regnerekkefolge',
   build(target, rng): GeneratedTask | null {
     return attempt(() => {
       const a = rng.int(2, 20);
@@ -205,6 +210,7 @@ const negative: TaskTemplate = {
   id: 'regn.negative',
   topic: 'likninger',
   level: 'enkel',
+  concept: 'likninger.regnerekkefolge',
   build(target, rng): GeneratedTask | null {
     return attempt(() => {
       const a = rng.int(-15, 15);
@@ -242,6 +248,7 @@ const toProdukter: TaskTemplate = {
   id: 'regn.produkter',
   topic: 'likninger',
   level: 'enkel',
+  concept: 'likninger.regnerekkefolge',
   build(target, rng): GeneratedTask | null {
     return attempt(() => {
       const a = rng.int(3, 12);

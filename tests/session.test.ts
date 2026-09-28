@@ -271,23 +271,33 @@ describe('spilløkt: hint', () => {
     if (target === undefined || target.task === null) return;
 
     let s = focusCell(s0, target.row, target.col, 0);
-    expect(hintView(s)).toEqual({ level: 0, steps: [], answer: null });
+    expect(hintView(s)).toEqual({ level: 0, concept: null, steps: [], answer: null });
 
+    // Nivå 1: konseptet, uten å røpe noe av løsningen.
     s = takeHint(s);
     const nivaa1 = hintView(s);
     expect(nivaa1.level).toBe(1);
-    expect(nivaa1.steps).toEqual([target.task.steps[0]]);
+    expect(nivaa1.concept).not.toBeNull();
+    expect(nivaa1.steps).toEqual([]);
     expect(nivaa1.answer).toBeNull();
     expect(s.score.hintsUsed).toBe(1);
 
+    // Nivå 2: første steg.
     s = takeHint(s);
     const nivaa2 = hintView(s);
     expect(nivaa2.level).toBe(2);
-    expect(nivaa2.answer).toBe(target.solution);
-    expect(nivaa2.steps).toEqual(target.task.steps);
-    expect(s.score.hintsUsed).toBe(2);
+    expect(nivaa2.steps).toEqual([target.task.steps[0]]);
+    expect(nivaa2.answer).toBeNull();
 
-    // Nivå 2 er taket.
+    // Nivå 3: fasit og alle stegene.
+    s = takeHint(s);
+    const nivaa3 = hintView(s);
+    expect(nivaa3.level).toBe(3);
+    expect(nivaa3.answer).toBe(target.solution);
+    expect(nivaa3.steps).toEqual(target.task.steps);
+    expect(s.score.hintsUsed).toBe(3);
+
+    // Nivå 3 er taket.
     const etter = takeHint(s);
     expect(etter).toBe(s);
   });
@@ -321,7 +331,7 @@ describe('spilløkt: hint', () => {
 
     const s = takeHint(focusCell(s0, given.row, given.col, 0));
     expect(s.score.hintsUsed).toBe(0);
-    expect(hintView(s)).toEqual({ level: 0, steps: [], answer: null });
+    expect(hintView(s)).toEqual({ level: 0, concept: null, steps: [], answer: null });
   });
 });
 

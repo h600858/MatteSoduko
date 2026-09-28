@@ -22,6 +22,7 @@ const verdi: TaskTemplate = {
   id: 'func.verdi',
   topic: 'funksjoner',
   level: 'middels',
+  concept: 'funksjoner.verdi',
   build(target, rng): GeneratedTask | null {
     return attempt(() => {
       const a = rng.pick(nonZeroRange(-5, 5));
@@ -62,6 +63,7 @@ const nullpunkt: TaskTemplate = {
   id: 'func.nullpunkt',
   topic: 'funksjoner',
   level: 'middels',
+  concept: 'funksjoner.nullpunkt',
   build(target, rng): GeneratedTask | null {
     return attempt(() => {
       const r = rng.int(target - 7, target - 1);
@@ -116,6 +118,7 @@ const log: TaskTemplate = {
   id: 'func.log',
   topic: 'funksjoner',
   level: 'middels',
+  concept: 'funksjoner.logaritmer',
   build(target, rng): GeneratedTask | null {
     const usable = LOG_BASES.filter((entry) => target <= entry.maxExponent);
     if (usable.length === 0) return null;
@@ -150,6 +153,7 @@ const skjaering: TaskTemplate = {
   id: 'func.skjaering',
   topic: 'funksjoner',
   level: 'middels',
+  concept: 'likninger.losning',
   build(target, rng): GeneratedTask | null {
     return attempt(() => {
       const a1 = rng.pick(nonZeroRange(-4, 4));
@@ -199,6 +203,7 @@ const sammensatt: TaskTemplate = {
   id: 'func.sammensatt',
   topic: 'funksjoner',
   level: 'vanskelig',
+  concept: 'funksjoner.verdi',
   build(target, rng): GeneratedTask | null {
     return attempt(() => {
       const a = rng.pick(nonZeroRange(-4, 4));
@@ -248,6 +253,7 @@ const invers: TaskTemplate = {
   id: 'func.invers',
   topic: 'funksjoner',
   level: 'vanskelig',
+  concept: 'likninger.losning',
   build(target, rng): GeneratedTask | null {
     return attempt(() => {
       const a = rng.pick(nonZeroRange(-5, 5));
@@ -287,6 +293,7 @@ const vekst: TaskTemplate = {
   id: 'func.vekst',
   topic: 'funksjoner',
   level: 'middels',
+  concept: 'funksjoner.logaritmer',
   build(target, rng): GeneratedTask | null {
     return attempt(() => {
       const start = rng.pick(VEKST_START);
@@ -320,6 +327,7 @@ const definisjon: TaskTemplate = {
   id: 'func.definisjon',
   topic: 'funksjoner',
   level: 'middels',
+  concept: 'funksjoner.nullpunkt',
   build(target, rng): GeneratedTask | null {
     return attempt(() => {
       const a = rng.int(2, 5);

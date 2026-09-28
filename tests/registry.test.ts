@@ -35,6 +35,7 @@ describe('nivåer og temaer', () => {
       id: 'ukjent.mal',
       topic: 'statistikk',
       level: 'middels',
+      concept: 'derivasjon.regler',
       build: (target) => ({
         templateId: 'ukjent.mal',
         latex: `${target}`,
@@ -179,6 +180,7 @@ describe('oppgaveregisteret', () => {
       id: 'test.konstant',
       topic: 'funksjoner',
       level: 'middels',
+      concept: 'funksjoner.verdi',
       build: (target) => ({
         templateId: 'test.konstant',
         latex: `${target}`,
