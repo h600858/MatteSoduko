@@ -11,6 +11,7 @@ import type { BoardSummary } from '../core/game/records.ts';
 import { summarizeBoard } from '../core/game/records.ts';
 import { DEFAULT_SCORING } from '../core/game/scoring.ts';
 import type { Session } from '../core/game/session.ts';
+import { lockedCells } from '../core/game/session.ts';
 import { allTemplates } from '../core/tasks/registry.ts';
 import type { DailyBoard } from '../core/game/daily.ts';
 import { Board } from './components/Board.tsx';
@@ -250,6 +251,7 @@ export function App(): React.JSX.Element {
           <Board
             board={session.board}
             selected={session.active}
+            blocked={lockedCells(session, now)}
             onSelect={(row, col) => dispatch({ type: 'velg', row, col, now: Date.now() })}
           />
           <TaskPanel ref={panelRef} session={session} now={now} />

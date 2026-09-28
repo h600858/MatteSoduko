@@ -43,6 +43,23 @@ export interface ScoringConfig {
   readonly maxBoardTimeBonus: number;
   /** Antall liv i streng modus. */
   readonly lives: number;
+
+  /**
+   * Hvor mange gale svar en celle tåler før den sperres.
+   *
+   * Uten dette kan man prøve seg gjennom alle tallene til ett sitter. Det
+   * koster poeng, men går fortere enn å regne, og da er oppgaven omgått.
+   */
+  readonly wrongAttemptsBeforeLock: number;
+  /** Hvor mange andre celler som må løses før sperren går opp. */
+  readonly unlockAfterCells: number;
+  /**
+   * Hvor lenge sperren varer uansett.
+   *
+   * Dette er en nødutgang, ikke hovedmekanismen: mot slutten av et brett kan
+   * det være for få celler igjen til å oppfylle kravet over.
+   */
+  readonly unlockAfterMs: number;
 }
 
 export const DEFAULT_SCORING: ScoringConfig = {
@@ -58,6 +75,9 @@ export const DEFAULT_SCORING: ScoringConfig = {
   pointsPerSecondSaved: 2,
   maxBoardTimeBonus: 400,
   lives: 3,
+  wrongAttemptsBeforeLock: 2,
+  unlockAfterCells: 3,
+  unlockAfterMs: 180_000,
 };
 
 export interface ScoreState {

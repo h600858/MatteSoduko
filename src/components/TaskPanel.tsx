@@ -2,7 +2,13 @@ import katex from 'katex';
 import { forwardRef, useMemo } from 'react';
 import type { Concept } from '../../core/tasks/concepts.ts';
 import type { Session } from '../../core/game/session.ts';
-import { activeCell, cellElapsedMs, cellProgress, hintView } from '../../core/game/session.ts';
+import {
+  activeCell,
+  activeLock,
+  cellElapsedMs,
+  cellProgress,
+  hintView,
+} from '../../core/game/session.ts';
 import { formatTime } from './Hud.tsx';
 
 /** Rendrer LaTeX til HTML én gang per uttrykk. */
@@ -141,6 +147,7 @@ export const TaskPanel = forwardRef<HTMLElement, TaskPanelProps>(function TaskPa
 
   const progress = cellProgress(session, cell.row, cell.col);
   const solved = cell.userValue === cell.solution;
+  const lås = activeLock(session, now);
 
   return (
     <aside className="oppgavepanel" ref={ref} tabIndex={-1}>
@@ -172,9 +179,25 @@ export const TaskPanel = forwardRef<HTMLElement, TaskPanelProps>(function TaskPa
 
           {solved ? (
             <p className="lost">Riktig. Cellen er låst.</p>
+          ) : lås.locked ? (
+            <div className="sperre" role="status">
+              <strong>Cellen er sperret.</strong>
+              <p>
+                Du brukte opp forsøkene dine her. Den åpner seg når du har løst{' '}
+                <strong>
+                  {lås.cellsLeft} {lås.cellsLeft === 1 ? 'annen celle' : 'andre celler'}
+                </strong>
+                , eller om <strong>{formatTime(lås.msLeft)}</strong> — det som kommer først.
+              </p>
+              <p className="hjelpetekst">
+                Hint virker fortsatt. Trykk h hvis du vil ha hjelp mens du venter.
+              </p>
+            </div>
           ) : (
             <p className="hjelpetekst">
               Skriv svaret som tall i cellen. Trykk h for hint.
+              {progress.wrongAttempts > 0 &&
+                ` Du har ${session.config.wrongAttemptsBeforeLock - progress.wrongAttempts % session.config.wrongAttemptsBeforeLock} forsøk igjen før cellen sperres.`}
             </p>
           )}
 

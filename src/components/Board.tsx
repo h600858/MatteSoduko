@@ -7,10 +7,12 @@ import { Cell } from './Cell.tsx';
 interface BoardProps {
   board: BoardModel;
   selected: CellRefLike | null;
+  /** Indeksene til cellene som er sperret akkurat nå. */
+  blocked: ReadonlySet<number>;
   onSelect: (row: number, col: number) => void;
 }
 
-export function Board({ board, selected, onSelect }: BoardProps): React.JSX.Element {
+export function Board({ board, selected, blocked, onSelect }: BoardProps): React.JSX.Element {
   const selectedCell = selected === null ? null : cellAt(board, selected.row, selected.col);
   const selectedValue = selectedCell === null ? 0 : effectiveValue(selectedCell);
   const selectedBlock =
@@ -23,7 +25,7 @@ export function Board({ board, selected, onSelect }: BoardProps): React.JSX.Elem
       role="grid"
       aria-label={`Sudokubrett ${board.size} ganger ${board.size}`}
     >
-      {board.cells.map((cell) => {
+      {board.cells.map((cell, index) => {
         const isSelected =
           selected !== null && cell.row === selected.row && cell.col === selected.col;
         const related =
@@ -41,6 +43,7 @@ export function Board({ board, selected, onSelect }: BoardProps): React.JSX.Elem
             selected={isSelected}
             related={related}
             sameValue={selectedValue !== 0 && effectiveValue(cell) === selectedValue}
+            blocked={blocked.has(index)}
             borderRight={(cell.col + 1) % board.blockCols === 0 && cell.col + 1 < board.size}
             borderBottom={(cell.row + 1) % board.blockRows === 0 && cell.row + 1 < board.size}
             onSelect={onSelect}

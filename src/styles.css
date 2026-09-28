@@ -1362,3 +1362,46 @@ button {
   margin-bottom: 6px;
   overflow-x: auto;
 }
+
+/* ---------- Sperret celle ---------- */
+
+.celle.sperret {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--grå-100),
+    var(--grå-100) 5px,
+    var(--grå-50) 5px,
+    var(--grå-50) 10px
+  );
+  cursor: not-allowed;
+}
+
+.celle.sperret.valgt {
+  outline-color: var(--grå-400);
+}
+
+.sperremerke {
+  color: var(--grå-400);
+  font-size: 15px;
+}
+
+.sperre {
+  margin: 14px 0 0;
+  padding: 13px 16px;
+  background: var(--grå-50);
+  border-left: 4px solid var(--grå-400);
+  border-radius: var(--radius-sm);
+}
+
+.sperre strong {
+  color: var(--grå-800);
+}
+
+.sperre p {
+  margin: 6px 0 0;
+  font-size: 14px;
+}
+
+.sperre .hjelpetekst {
+  margin-top: 10px;
+}

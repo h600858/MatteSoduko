@@ -9,6 +9,8 @@ interface CellProps {
   related: boolean;
   /** Cellen har samme tall som den valgte. */
   sameValue: boolean;
+  /** Midlertidig stengt etter for mange gale svar. */
+  blocked: boolean;
   /** Tykk skillelinje mot naboen til høyre eller under. */
   borderRight: boolean;
   borderBottom: boolean;
@@ -21,6 +23,7 @@ export function Cell({
   selected,
   related,
   sameValue,
+  blocked,
   borderRight,
   borderBottom,
   onSelect,
@@ -30,13 +33,14 @@ export function Cell({
   if (selected) classes.push('valgt');
   if (related) classes.push('beslektet');
   if (sameValue && !selected) classes.push('samme-tall');
+  if (blocked) classes.push('sperret');
   if (borderRight) classes.push('kant-hoyre');
   if (borderBottom) classes.push('kant-bunn');
 
   const label = cell.given
     ? `Rad ${cell.row + 1}, kolonne ${cell.col + 1}: låst ${value}`
     : `Rad ${cell.row + 1}, kolonne ${cell.col + 1}: ${
-        value === 0 ? 'tom, har oppgave' : String(value)
+        blocked ? 'sperret' : value === 0 ? 'tom, har oppgave' : String(value)
       }`;
 
   return (
@@ -57,6 +61,10 @@ export function Cell({
               {cell.notes.has(candidate) ? candidate : ''}
             </span>
           ))}
+        </span>
+      ) : blocked ? (
+        <span className="sperremerke" aria-hidden="true">
+          ⏻
         </span>
       ) : (
         <span className="oppgavemerke" aria-hidden="true">

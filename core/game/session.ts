@@ -44,6 +44,12 @@ export interface CellProgress {
   readonly wrongAttempts: number;
   /** Verdien vi allerede har trukket poeng for, så samme feil ikke koster to ganger. */
   readonly chargedFor: number | null;
+  /** Gale svar siden cellen sist ble sperret. Nullstilles når sperren går opp. */
+  readonly wrongSinceLock: number;
+  /** Når cellen ble sperret. null betyr at den ikke er sperret. */
+  readonly lockedAt: number | null;
+  /** Hvor mange løste celler som må til før sperren går opp. */
+  readonly unlockAtSolvedCount: number;
   /** Tiden cellen tok da den ble løst. Går videre til statistikken i M6. */
   readonly solvedMs: number | null;
 }
@@ -75,6 +81,9 @@ const EMPTY_PROGRESS: CellProgress = {
   hintLevel: 0,
   wrongAttempts: 0,
   chargedFor: null,
+  wrongSinceLock: 0,
+  lockedAt: null,
+  unlockAtSolvedCount: 0,
   solvedMs: null,
 };
 
@@ -231,6 +240,70 @@ export function isCellLocked(cell: Cell): boolean {
   return cell.given || cell.userValue === cell.solution;
 }
 
+export interface LockState {
+  locked: boolean;
+  /** Hvor mange andre celler som gjenstår før sperren går opp. */
+  cellsLeft: number;
+  /** Hvor lang tid som gjenstår av nødutgangen. */
+  msLeft: number;
+}
+
+const OPEN: LockState = { locked: false, cellsLeft: 0, msLeft: 0 };
+
+/**
+ * Sperren på én celle.
+ *
+ * Den går opp når spilleren har løst nok andre celler, eller når tiden har
+ * gått — det som skjer først. Tiden er nødutgangen: mot slutten av et brett
+ * kan det være for få celler igjen til å oppfylle cellekravet.
+ */
+function lockStateOf(
+  progress: CellProgress,
+  solvedCells: number,
+  config: ScoringConfig,
+  now: number,
+): LockState {
+  if (progress.lockedAt === null) return OPEN;
+
+  const cellsLeft = Math.max(0, progress.unlockAtSolvedCount - solvedCells);
+  const msLeft = Math.max(0, config.unlockAfterMs - (now - progress.lockedAt));
+
+  if (cellsLeft === 0 || msLeft === 0) return OPEN;
+  return { locked: true, cellsLeft, msLeft };
+}
+
+export function cellLock(session: Session, row: number, col: number, now: number): LockState {
+  return lockStateOf(
+    cellProgress(session, row, col),
+    session.score.solvedCells,
+    session.config,
+    now,
+  );
+}
+
+/** Sperren på cellen spilleren står i. */
+export function activeLock(session: Session, now: number): LockState {
+  if (session.active === null) return OPEN;
+  return cellLock(session, session.active.row, session.active.col, now);
+}
+
+/**
+ * Indeksene til cellene som er sperret akkurat nå.
+ *
+ * Regnes ut ved opptegning, ikke lagret som en status på cellen. Sperren har
+ * en tidsdel, og en status som bare oppdateres ved handling ville hengt etter
+ * til spilleren gjorde noe.
+ */
+export function lockedCells(session: Session, now: number): Set<number> {
+  const sperret = new Set<number>();
+  for (const [index, progress] of session.progress) {
+    if (lockStateOf(progress, session.score.solvedCells, session.config, now).locked) {
+      sperret.add(index);
+    }
+  }
+  return sperret;
+}
+
 /**
  * Skriver et svar i den aktive cellen.
  *
@@ -244,6 +317,8 @@ export function submitValue(session: Session, value: number, now: number): Sessi
   const cell = cellAt(session.board, row, col);
   if (isCellLocked(cell)) return session;
   if (value < 1 || value > session.board.size) return session;
+  // En sperret celle tar ikke imot flere forsøk.
+  if (cellLock(session, row, col, now).locked) return session;
 
   const index = cellIndex(session.board.size, row, col);
   const correct = value === cell.solution;
@@ -294,16 +369,32 @@ export function submitValue(session: Session, value: number, now: number): Sessi
       ? chargeMistake(session.score, session.config, 'streng')
       : session.score;
 
+  const wrongSinceLock = previous.wrongSinceLock + 1;
+  const skalSperres = wrongSinceLock >= session.config.wrongAttemptsBeforeLock;
+
+  // Kravet kan ikke være større enn antallet celler som faktisk gjenstår, ellers
+  // ville sperren aldri gått opp mot slutten av brettet.
+  const andreIgjen = Math.max(0, unsolvedCount(session) - 1);
+  const kreves = Math.min(session.config.unlockAfterCells, andreIgjen);
+
   const progress = new Map(session.progress);
   progress.set(index, {
     ...previous,
+    // Klokken stoppes mens cellen er sperret. Spilleren kan ikke jobbe med den,
+    // og skal ikke miste tidsbonus på å vente.
+    elapsedMs: skalSperres ? cellElapsedMs(session, row, col, now) : previous.elapsedMs,
+    activeSince: skalSperres ? null : previous.activeSince,
     wrongAttempts: previous.wrongAttempts + 1,
     chargedFor: session.mode === 'streng' ? value : previous.chargedFor,
+    wrongSinceLock: skalSperres ? 0 : wrongSinceLock,
+    lockedAt: skalSperres ? now : previous.lockedAt,
+    unlockAtSolvedCount: skalSperres
+      ? score.solvedCells + kreves
+      : previous.unlockAtSolvedCount,
   });
 
   const showErrors = session.mode === 'streng';
   const lost = isOutOfLives(score, session.mode);
-
   return {
     ...session,
     board: restyle(board, showErrors),
