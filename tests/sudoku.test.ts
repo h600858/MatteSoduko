@@ -1,15 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { createRng } from '../core/rng.ts';
-import type { BoardDifficulty } from '../core/sudoku/generate.ts';
+import { rateGrid } from '../core/sudoku/difficulty.ts';
 import {
   dig,
   generatePuzzle,
   generateSolved,
-  holesForDifficulty,
+  taskCountFor,
 } from '../core/sudoku/generate.ts';
 import type { Grid } from '../core/sudoku/grid.ts';
 import {
   BOARD_SIZES,
+  allCells,
   blockIndexOf,
   cellsOfBlock,
   countEmpty,
@@ -23,8 +24,6 @@ import { isMoveLegal, validate } from '../core/sudoku/validate.ts';
 
 /** Antall brett per størrelse, jf. testkrav 3. */
 const BOARDS_PER_SIZE = 100;
-
-const DIFFICULTIES: BoardDifficulty[] = [1, 2, 3];
 
 /** Kontrollerer at hver rad, kolonne og blokk inneholder 1..size nøyaktig én gang. */
 function assertCompleteAndValid(grid: Grid): void {
@@ -155,16 +154,27 @@ describe('countSolutions', () => {
 });
 
 describe('solve', () => {
-  it('gjenskaper løsningen til et gravd brett', () => {
+  it('finner en gyldig utfylling av et tomt brett', () => {
+    // Et tomt brett har mange løsninger, så solve kan ikke treffe fasiten.
+    // Kravet er at det den finner er et lovlig komplett brett.
     for (const size of BOARD_SIZES) {
-      const { puzzle, solution } = generatePuzzle({
-        size,
-        boardDifficulty: 3,
-        rng: createRng(`losning:${size}`),
-      });
+      const { puzzle } = generatePuzzle({ size, rng: createRng(`losning:${size}`) });
       const solved = solve(puzzle);
       expect(solved).not.toBeNull();
-      expect(solved?.cells).toEqual(solution.cells);
+      if (solved === null) continue;
+      assertCompleteAndValid(solved);
+    }
+  });
+
+  it('gjenskaper fasiten når nok celler står', () => {
+    // Så snart ledetrådene bestemmer brettet, må solve treffe nøyaktig fasiten.
+    // Det er dette som gjør at spilleren kan dedusere seg i mål.
+    for (const size of BOARD_SIZES) {
+      const rng = createRng(`fasit:${size}`);
+      const losning = generateSolved(size, rng);
+      const medLedetrader = dig(losning, size * size, rng);
+      expect(hasUniqueSolution(medLedetrader)).toBe(true);
+      expect(solve(medLedetrader)?.cells).toEqual(losning.cells);
     }
   });
 });
@@ -202,49 +212,144 @@ describe('dig', () => {
 
 describe(`genererte brett: ${BOARDS_PER_SIZE} per størrelse`, () => {
   for (const size of BOARD_SIZES) {
-    it(`${size}x${size} har nøyaktig én løsning og er gyldig`, () => {
+    it(`${size}x${size} er helt tomt, med en gyldig fasit bak`, () => {
       for (let i = 0; i < BOARDS_PER_SIZE; i += 1) {
-        const boardDifficulty = DIFFICULTIES[i % DIFFICULTIES.length] ?? 2;
         const { puzzle, solution } = generatePuzzle({
           size,
-          boardDifficulty,
           rng: createRng(`brett:${size}:${i}`),
         });
 
-        // Fasiten er et gyldig komplett brett.
+        // Fasiten er et gyldig komplett brett. Det er den som gir hver celle
+        // sitt svar, og den invarianten er uendret.
         assertCompleteAndValid(solution);
 
-        // Brettet med hull bryter ingen regler.
-        const check = validate(puzzle);
-        expect(check.valid, `brett ${i} (${size}x${size}) bryter reglene`).toBe(true);
-        expect(check.complete).toBe(false);
+        // Og brettet spilleren møter er tomt: hver eneste celle har en oppgave.
+        expect(countEmpty(puzzle), `brett ${i} (${size}x${size}) er ikke tomt`).toBe(
+          size * size,
+        );
         expect(isFilled(puzzle)).toBe(false);
-
-        // Og det har nøyaktig én løsning.
-        expect(
-          countSolutions(puzzle, 2),
-          `brett ${i} (${size}x${size}, nivå ${boardDifficulty}) er ikke entydig`,
-        ).toBe(1);
+        expect(validate(puzzle).valid).toBe(true);
       }
     });
   }
 
-  it('treffer rimelig nær bestilt hulltall', () => {
+  it('har en oppgave i hver celle, uten unntak', () => {
     for (const size of BOARD_SIZES) {
-      for (const difficulty of DIFFICULTIES) {
-        const wanted = holesForDifficulty(size, difficulty);
-        const { puzzle } = generatePuzzle({
-          size,
-          boardDifficulty: difficulty,
-          rng: createRng(`hull:${size}:${difficulty}`),
-        });
-        const actual = countEmpty(puzzle);
-        expect(actual).toBeLessThanOrEqual(wanted);
-        expect(
-          actual,
-          `${size}x${size} nivå ${difficulty}: fikk ${actual} av ${wanted} hull`,
-        ).toBeGreaterThanOrEqual(Math.floor(wanted * 0.75));
+      const { puzzle } = generatePuzzle({ size, rng: createRng(`alle:${size}`) });
+      expect(countEmpty(puzzle)).toBe(taskCountFor(size));
+      expect(puzzle.cells.every((value) => value === 0)).toBe(true);
+    }
+  });
+
+  it('er IKKE entydig fra start, og det er med vilje', () => {
+    // Dette er bruddet med vanlig sudoku. Et tomt rutenett har mange gyldige
+    // utfyllinger. Det går bra fordi oppgavene er ledetrådene: hver celle kan
+    // alltid løses ved å regne, så spilleren står aldri fast.
+    for (const size of BOARD_SIZES) {
+      const { puzzle } = generatePuzzle({ size, rng: createRng(`flertydig:${size}`) });
+      expect(countSolutions(puzzle, 2)).toBe(2);
+      expect(hasUniqueSolution(puzzle)).toBe(false);
+    }
+  });
+
+  it('blir entydig når minMathCells celler er fylt, om man velger godt', () => {
+    // Kjerneløftet: tallet vi viser spilleren skal være oppnåelig. Vi beviser
+    // det ved å finne et ledetrådsett av akkurat den størrelsen som gjør resten
+    // entydig.
+    for (const size of BOARD_SIZES) {
+      for (let i = 0; i < 5; i += 1) {
+        const rng = createRng(`terskel:${size}:${i}`);
+        const { solution, minMathCells } = generatePuzzle({ size, rng });
+
+        // Grav med samme strømmer: ett av forsøkene må treffe minMathCells.
+        const ledetradStrom = createRng(`terskel:${size}:${i}`)
+          .fork('ledetrader');
+        let traff = false;
+        for (let d = 0; d < 8 && !traff; d += 1) {
+          const gravd = dig(solution, size * size, ledetradStrom.fork(`ledetrad:${d}`));
+          const igjen = size * size - countEmpty(gravd);
+          if (igjen === minMathCells) {
+            // Og med de cellene stående er resten entydig bestemt.
+            expect(hasUniqueSolution(gravd)).toBe(true);
+            traff = true;
+          }
+        }
+        expect(traff, `${size}x${size} brett ${i}: fant ikke settet på ${minMathCells}`).toBe(
+          true,
+        );
       }
+    }
+  });
+
+  it('krever langt mindre enn halve brettet', () => {
+    // Poenget med spillet: du skal slippe å regne alt. Målt snitt er 4 av 16,
+    // 10 av 36 og 24 av 81, så under halvparten med god margin.
+    for (const size of BOARD_SIZES) {
+      for (let i = 0; i < 10; i += 1) {
+        const { minMathCells } = generatePuzzle({ size, rng: createRng(`andel:${size}:${i}`) });
+        expect(minMathCells).toBeGreaterThan(0);
+        expect(
+          minMathCells,
+          `${size}x${size}: ${minMathCells} av ${size * size} er for mye`,
+        ).toBeLessThan((size * size) / 2);
+      }
+    }
+  });
+
+  it('ligger nær de målte snittene', () => {
+    const ventet: Readonly<Record<number, number>> = { 4: 4, 6: 10, 9: 24 };
+    for (const size of BOARD_SIZES) {
+      let sum = 0;
+      const runder = 10;
+      for (let i = 0; i < runder; i += 1) {
+        sum += generatePuzzle({ size, rng: createRng(`snitt:${size}:${i}`) }).minMathCells;
+      }
+      const snitt = sum / runder;
+      const mal = ventet[size] ?? 0;
+      expect(
+        Math.abs(snitt - mal),
+        `${size}x${size}: snitt ${snitt.toFixed(1)}, ventet rundt ${mal}`,
+      ).toBeLessThanOrEqual(2);
+    }
+  });
+
+  it('nar brettet er fylt nok, holder enkle teknikker hele veien', () => {
+    // Spilleren skal kunne dedusere for hand, ikke bare i teorien. Vi fyller
+    // tilfeldige celler fra fasiten og sjekker at entydighet og
+    // handløsbarhet inntreffer samtidig.
+    for (const size of [4, 6] as const) {
+      for (let i = 0; i < 6; i += 1) {
+        const rng = createRng(`forhand:${size}:${i}`);
+        const { solution } = generatePuzzle({ size, rng });
+
+        let brett = createGrid(size, new Array<number>(size * size).fill(0));
+        let entydigVed = -1;
+        let forHandVed = -1;
+        let fylt = 0;
+
+        for (const { row, col } of rng.fork('rekkefolge').shuffle(allCells(solution))) {
+          brett = withValue(brett, row, col, valueAt(solution, row, col));
+          fylt += 1;
+          if (entydigVed < 0 && hasUniqueSolution(brett)) entydigVed = fylt;
+          if (forHandVed < 0 && rateGrid(brett).unsolved === 0) forHandVed = fylt;
+          if (entydigVed > 0 && forHandVed > 0) break;
+        }
+
+        expect(entydigVed).toBeGreaterThan(0);
+        expect(
+          forHandVed,
+          `${size}x${size} brett ${i}: entydig ved ${entydigVed}, for hand ved ${forHandVed}`,
+        ).toBe(entydigVed);
+      }
+    }
+  });
+
+  it('gir samme brett og samme terskel for samme seed', () => {
+    for (const size of BOARD_SIZES) {
+      const a = generatePuzzle({ size, rng: createRng(`repro:${size}`) });
+      const b = generatePuzzle({ size, rng: createRng(`repro:${size}`) });
+      expect(a.solution.cells).toEqual(b.solution.cells);
+      expect(a.minMathCells).toBe(b.minMathCells);
     }
   });
 });
@@ -271,7 +376,6 @@ describe('validate', () => {
   it('godtar et halvferdig brett uten regelbrudd', () => {
     const { puzzle } = generatePuzzle({
       size: 9,
-      boardDifficulty: 2,
       rng: createRng('halvferdig'),
     });
     const result = validate(puzzle);
@@ -315,7 +419,6 @@ describe('isMoveLegal', () => {
   it('avviser trekk som kolliderer, og godtar trekk som ikke gjør det', () => {
     const { puzzle, solution } = generatePuzzle({
       size: 9,
-      boardDifficulty: 2,
       rng: createRng('trekk'),
     });
 

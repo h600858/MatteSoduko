@@ -29,7 +29,6 @@ function board(seed: string): Board {
     size: 9,
     topics: ALLE_TEMAER,
     level: NIVAA,
-    boardDifficulty: 2,
     seed,
   });
 }

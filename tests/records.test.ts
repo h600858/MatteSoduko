@@ -32,7 +32,6 @@ function boardResult(over: Partial<BoardResult> = {}): BoardResult {
     size: 6,
     mode: 'rolig',
     level: 'middels',
-    boardDifficulty: 2,
     points: 1000,
     durationMs: 300_000,
     taskCount: 17,
@@ -307,11 +306,12 @@ describe('migrering fra versjon 3', () => {
       msPlayed: 900_000,
     },
     templates: {},
-    // Nyeste først, slik fila lagres.
+    // Nyeste først, slik fila lagres. boardDifficulty forsvant i versjon 5,
+    // men en fil fra versjon 3 har feltet, så fixturen må ha det også.
     boards: [
-      paaDato(2026, 9, 3, { points: 1500, seed: 'c' }),
-      paaDato(2026, 9, 2, { points: 700, seed: 'b' }),
-      paaDato(2026, 9, 1, { points: 300, seed: 'a' }),
+      { ...paaDato(2026, 9, 3, { points: 1500, seed: 'c' }), boardDifficulty: 2 },
+      { ...paaDato(2026, 9, 2, { points: 700, seed: 'b' }), boardDifficulty: 2 },
+      { ...paaDato(2026, 9, 1, { points: 300, seed: 'a' }), boardDifficulty: 1 },
     ],
   };
 

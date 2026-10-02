@@ -140,7 +140,7 @@ export const TaskPanel = forwardRef<HTMLElement, TaskPanelProps>(function TaskPa
   if (cell === null) {
     return (
       <aside className="oppgavepanel" ref={ref} tabIndex={-1}>
-        <p className="tomtekst">Velg en celle for å se oppgaven.</p>
+        <p className="tomtekst">Trykk på en celle for å se oppgaven.</p>
       </aside>
     );
   }
@@ -160,7 +160,7 @@ export const TaskPanel = forwardRef<HTMLElement, TaskPanelProps>(function TaskPa
           Denne cellen var utfylt fra start og har ingen oppgave. Flytt til en celle med ƒ.
         </p>
       ) : task === null ? (
-        <p className="tomtekst">Cellen mangler oppgave.</p>
+        <p className="tomtekst">Denne cellen har ingen oppgave.</p>
       ) : (
         <>
           <p className="malid">
@@ -178,26 +178,26 @@ export const TaskPanel = forwardRef<HTMLElement, TaskPanelProps>(function TaskPa
           <p className="spørsmål">{task.prompt}</p>
 
           {solved ? (
-            <p className="lost">Riktig. Cellen er låst.</p>
+            <p className="lost">Riktig! Cellen står.</p>
           ) : lås.locked ? (
             <div className="sperre" role="status">
-              <strong>Cellen er sperret.</strong>
+              <strong>Cellen er stengt.</strong>
               <p>
-                Du brukte opp forsøkene dine her. Den åpner seg når du har løst{' '}
+                Du brant opp forsøkene dine her. Den åpner seg når du har løst{' '}
                 <strong>
                   {lås.cellsLeft} {lås.cellsLeft === 1 ? 'annen celle' : 'andre celler'}
                 </strong>
                 , eller om <strong>{formatTime(lås.msLeft)}</strong> — det som kommer først.
               </p>
               <p className="hjelpetekst">
-                Hint virker fortsatt. Trykk h hvis du vil ha hjelp mens du venter.
+                Hint virker fortsatt — trykk h hvis du vil ha hjelp mens du venter.
               </p>
             </div>
           ) : (
             <p className="hjelpetekst">
-              Skriv svaret som tall i cellen. Trykk h for hint.
+              Skriv svaret rett inn i cellen. Trykk h for hint.
               {progress.wrongAttempts > 0 &&
-                ` Du har ${session.config.wrongAttemptsBeforeLock - progress.wrongAttempts % session.config.wrongAttemptsBeforeLock} forsøk igjen før cellen sperres.`}
+                ` Du har ${session.config.wrongAttemptsBeforeLock - progress.wrongAttempts % session.config.wrongAttemptsBeforeLock} forsøk igjen før cellen stenger.`}
             </p>
           )}
 
@@ -205,10 +205,10 @@ export const TaskPanel = forwardRef<HTMLElement, TaskPanelProps>(function TaskPa
             <div className="hint">
               <h3>
                 {hint.level === 1
-                  ? 'Hint 1 av 3: hva slags oppgave'
+                  ? 'Hint 1 av 3: hva dette er'
                   : hint.level === 2
-                    ? 'Hint 2 av 3: første steg'
-                    : 'Hint 3 av 3: fasit'}
+                    ? 'Hint 2 av 3: kom i gang'
+                    : 'Hint 3 av 3: svaret'}
               </h3>
 
               {hint.concept !== null && <Konsept concept={hint.concept} />}
@@ -226,7 +226,7 @@ export const TaskPanel = forwardRef<HTMLElement, TaskPanelProps>(function TaskPa
               {hint.answer !== null && <p className="fasit">Svaret er {hint.answer}.</p>}
 
               {hint.level < 3 && (
-                <p className="hjelpetekst">Trykk h igjen for mer hjelp.</p>
+                <p className="hjelpetekst">Trykk h en gang til for mer.</p>
               )}
             </div>
           )}

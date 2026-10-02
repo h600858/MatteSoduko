@@ -41,7 +41,6 @@ function boardResult(overrides: Partial<BoardResult> = {}): BoardResult {
     size: 9,
     mode: 'rolig',
     level: NIVAA,
-    boardDifficulty: 2,
     points: 1000,
     durationMs: 60_000,
     taskCount: 5,
@@ -164,9 +163,11 @@ describe('migrering fra versjon 1', () => {
         lastSeen: '2026-09-01T10:00:00.000Z',
       },
     },
+    // boardDifficulty hører til de gamle versjonene. Feltet forsvant i versjon
+    // 5, men en fil fra versjon 1 har det, så fixturen må ha det også.
     boards: [
-      { ...boardResult(), taskDifficulty: 3, level: undefined },
-      { ...boardResult(), taskDifficulty: 1, level: undefined },
+      { ...boardResult(), boardDifficulty: 3, taskDifficulty: 3, level: undefined },
+      { ...boardResult(), boardDifficulty: 1, taskDifficulty: 1, level: undefined },
     ].map((board) => {
       const { level, ...resten } = board;
       void level;
@@ -449,7 +450,6 @@ describe('sessionRecord: fra ekte spilløkt til lagret fremdrift', () => {
       size: 4,
       topics: ALLE_TEMAER,
       level: NIVAA,
-      boardDifficulty: 2,
       seed: 'lagring',
     });
 

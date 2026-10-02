@@ -36,25 +36,28 @@ function Oppsummering({ summary }: { summary: BoardSummary }): React.JSX.Element
         {fullført
           ? `Brettet er løst på ${formatTime(board.durationMs)}.`
           : 'Livene er brukt opp.'}{' '}
-        <strong>{board.points.toLocaleString('nb-NO')} poeng</strong> til totalen.
+        <strong>{board.points.toLocaleString('nb-NO')} poeng</strong> rett i banken.
       </p>
 
       <ul className="maalestokk">
         {andel !== null && (
           <li>
-            <strong>{Math.round(andel * 100)} %</strong> av det brettet kunne gitt
+            Du tok <strong>{Math.round(andel * 100)} %</strong> av det brettet hadde å gi
           </li>
         )}
         {persentil !== null && (
           <li>
             Bedre enn <strong>{Math.round(persentil * 100)} %</strong> av dine egne{' '}
-            {LEVEL_INFO[board.level].label.toLowerCase()}-brett
+            {LEVEL_INFO[board.level].label.toLowerCase()}-brett så langt
           </li>
         )}
         {beat !== null && (
           <li className="rekord">
-            Ny personlig rekord
-            {beat === 'poeng' ? ' i poeng' : beat === 'tid' ? ' i tid' : ''}
+            {beat === 'poeng'
+              ? 'Ny poengrekord!'
+              : beat === 'tid'
+                ? 'Ny tidsrekord!'
+                : 'Ny rekord i både poeng og tid!'}
           </li>
         )}
       </ul>
@@ -95,13 +98,13 @@ export function Hud({
             {'♡'.repeat(Math.max(0, config.lives - score.livesLeft))} liv
           </span>
         )}
-        <span title="Tid på hele brettet">brett {formatTime(boardElapsedMs(session, now))}</span>
-        <span title="Tid på cellen du står i">celle {formatTime(cellMs)}</span>
+        <span title="Tid brukt på hele brettet">brett {formatTime(boardElapsedMs(session, now))}</span>
+        <span title="Tid brukt på cellen du står i">celle {formatTime(cellMs)}</span>
         <span>
           {remaining} av {countTasks(board)} igjen
         </span>
         {score.hintsUsed > 0 && <span>{score.hintsUsed} hint</span>}
-        {score.mistakes > 0 && <span className="feil">{score.mistakes} feil</span>}
+        {score.mistakes > 0 && <span className="feil">{score.mistakes} bom</span>}
       </div>
 
       {status !== 'spiller' && summary !== null && <Oppsummering summary={summary} />}
@@ -138,7 +141,15 @@ export function Hud({
         <span className="merke">
           {board.size}×{board.size}
         </span>
-        <span>brettnivå {board.boardDifficulty}</span>
+        <span
+          title={
+            `Velger du cellene godt, holder det med ${board.minMathCells} av ` +
+            `${countTasks(board)} oppgaver — resten følger av sudokulogikk. ` +
+            'Tar du dem i tilfeldig rekkefølge trenger du omtrent dobbelt så mange.'
+          }
+        >
+          minst {board.minMathCells} å regne
+        </span>
         <span>{LEVEL_INFO[board.level].label.toLowerCase()}</span>
         <span>{mode} modus</span>
         <span>{board.topics.map((id) => topicLabel(id)).join(', ')}</span>

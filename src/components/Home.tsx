@@ -5,7 +5,7 @@ import { MASCOT_NAME, dailyQuote, greeting } from '../../core/game/mascot.ts';
 import type { Progress } from '../../core/game/progress.ts';
 import { streakView } from '../../core/game/records.ts';
 import { DEFAULT_SCORING, maxBoardScore, rankFor } from '../../core/game/scoring.ts';
-import { holesForDifficulty } from '../../core/sudoku/generate.ts';
+import { taskCountFor } from '../../core/sudoku/generate.ts';
 import { taskRegistry } from '../../core/tasks/registry.ts';
 import type { Level } from '../../core/tasks/types.ts';
 import { LEVELS, LEVEL_INFO } from '../../core/tasks/types.ts';
@@ -23,6 +23,12 @@ interface HomeProps {
   onProfile: () => void;
 }
 
+/**
+ * Omtrent hvor få oppgaver man slipper unna med per størrelse, hvis man velger
+ * cellene godt. Målte snitt; det eksakte tallet for brettet står i HUD-en.
+ */
+const SMART_ANSLAG: Readonly<Record<number, number>> = { 4: 4, 6: 10, 9: 24 };
+
 export function Home({
   progress,
   level,
@@ -36,7 +42,7 @@ export function Home({
   const spilt = dailyPlayed(progress, now, level);
   const resultat = dailyResult(progress, now, level);
 
-  const oppgaver = holesForDifficulty(oppsett.size, oppsett.boardDifficulty);
+  const oppgaver = taskCountFor(oppsett.size);
   const tak = maxBoardScore(DEFAULT_SCORING, oppgaver, level);
   const rang = rankFor(progress.lifetime.points);
   const rekke = streakView(progress.streak, now);
@@ -55,15 +61,15 @@ export function Home({
           {progress.lifetime.boardsPlayed > 0 && (
             <p className="velkomststatus">
               {progress.lifetime.points.toLocaleString('nb-NO')} poeng · {rang.label} ·{' '}
-              {progress.lifetime.boardsPlayed} brett spilt
+              {progress.lifetime.boardsPlayed} brett
             </p>
           )}
           {rekke.current > 0 && (
             <p className={`rekke ${rekke.atRisk ? 'fare' : ''}`}>
               <span className="rekketall">{rekke.current}</span>
               {rekke.current === 1 ? ' dag på rad' : ' dager på rad'}
-              {rekke.atRisk ? ' · spill i dag for å holde den' : ''}
-              {rekke.longest > rekke.current ? ` · lengste ${rekke.longest}` : ''}
+              {rekke.atRisk ? ' · spill i dag, ellers ryker streaken' : ''}
+              {rekke.longest > rekke.current ? ` · best: ${rekke.longest}` : ''}
             </p>
           )}
         </div>
@@ -75,8 +81,9 @@ export function Home({
           {spilt && <span className="merkelapp">Spilt i dag</span>}
         </div>
         <p className="hjelpetekst">
-          Alle som spiller {LEVEL_INFO[level].label.toLowerCase()} i dag får nøyaktig dette
-          brettet, med nøyaktig disse oppgavene.
+          Helt tomt brett — {oppgaver} celler, {oppgaver} matteoppgaver. Alle som spiller{' '}
+          {LEVEL_INFO[level].label.toLowerCase()} i dag får akkurat dette brettet, med akkurat
+          disse oppgavene.
         </p>
 
         <div className="nivaavelger" role="group" aria-label="Velg nivå for dagens brett">
@@ -105,8 +112,12 @@ export function Home({
             <dd>{oppgaver}</dd>
           </div>
           <div>
-            <dt>Å hente</dt>
-            <dd>opptil {tak.toLocaleString('nb-NO')}</dd>
+            <dt>Nok å regne</dt>
+            <dd>rundt {SMART_ANSLAG[oppsett.size] ?? '?'}</dd>
+          </div>
+          <div>
+            <dt>Maks</dt>
+            <dd>{tak.toLocaleString('nb-NO')} poeng</dd>
           </div>
         </dl>
 
@@ -119,7 +130,9 @@ export function Home({
             <p className="dagensresultat">
               Du fikk <strong>{resultat.points.toLocaleString('nb-NO')} poeng</strong> på{' '}
               {formatTime(resultat.durationMs)}
-              {resultat.completed ? ', og fullførte brettet.' : `, og løste ${resultat.solvedCells} av ${resultat.taskCount} celler.`}
+              {resultat.completed
+                ? ', og fullførte brettet.'
+                : `, og rakk ${resultat.solvedCells} av ${resultat.taskCount} celler.`}
             </p>
             <button type="button" onClick={() => onStartDaily(oppsett)}>
               Spill det om igjen
@@ -132,13 +145,13 @@ export function Home({
         <button type="button" className="hjemkort" onClick={onSetup}>
           <span className="hjemkorttittel">Sett opp brett</span>
           <span className="hjelpetekst">
-            Velg nivå, temaer, størrelse og feilmodus selv.
+            Bestem nivå, temaer, størrelse og feilmodus selv.
           </span>
         </button>
         <button type="button" className="hjemkort" onClick={onProfile}>
           <span className="hjemkorttittel">Profil</span>
           <span className="hjelpetekst">
-            Poeng, trinn og statistikk per oppgavemal.
+            Poeng, rang, streak og hvordan du ligger an på hver oppgavetype.
           </span>
         </button>
       </section>

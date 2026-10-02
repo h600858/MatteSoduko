@@ -4,15 +4,14 @@
  *
  * Rekkefølgen er den som gjør hele prosjektet mulig:
  *   1. lag et komplett brett
- *   2. grav hull, med entydig løsning
- *   3. les fasitsifferet i hver tomme celle
+ *   2. la brettet stå helt tomt — hver celle skal bære en oppgave
+ *   3. les fasitsifferet i hver celle
  *   4. bestill en oppgave med akkurat det svaret
  *
  * Ingen import fra React eller Electron.
  */
 import type { Rng } from '../rng.ts';
 import { createRng } from '../rng.ts';
-import type { BoardDifficulty } from '../sudoku/generate.ts';
 import { generatePuzzle } from '../sudoku/generate.ts';
 import type { BoardSize, Grid } from '../sudoku/grid.ts';
 import { createGrid, valueAt } from '../sudoku/grid.ts';
@@ -45,7 +44,11 @@ export interface Board {
   readonly blockCols: number;
   readonly topics: readonly Topic[];
   readonly level: Level;
-  readonly boardDifficulty: BoardDifficulty;
+  /**
+   * Færrest oppgaver som må løses før resten følger av sudokulogikk, hvis man
+   * velger cellene godt. Tilfeldig rekkefølge krever omtrent det dobbelte.
+   */
+  readonly minMathCells: number;
   /** size*size celler, radvis. */
   readonly cells: readonly Cell[];
   /** Den komplette løsningen. */
@@ -59,8 +62,6 @@ export interface GenerateBoardOptions {
   topics: readonly Topic[];
   /** Skolenivået brettet spilles på. Bare maler fra dette nivået brukes. */
   level: Level;
-  /** Styrer antall hull. Uavhengig av taskDifficulty. */
-  boardDifficulty: BoardDifficulty;
   seed: string | number;
   /** Byttes ut i tester og når nye temaer registreres. */
   registry?: TaskRegistry;
@@ -285,7 +286,7 @@ function buildTasks(
       if (task === null) {
         throw new BoardGenerationError(
           `Klarte ikke å lage en unik oppgave med svaret ${answer} til celle ` +
-            `(${row}, ${col}). Prøv færre hull, flere temaer eller et høyere oppgavenivå.`,
+            `(${row}, ${col}). Prøv flere temaer, et annet oppgavenivå eller et mindre brett.`,
         );
       }
 
@@ -323,9 +324,8 @@ export function generateBoard(options: GenerateBoardOptions): Board {
   const boardRng = rng.fork('brett');
   const taskRng = rng.fork('oppgaver');
 
-  const { puzzle, solution } = generatePuzzle({
+  const { puzzle, solution, minMathCells } = generatePuzzle({
     size: options.size,
-    boardDifficulty: options.boardDifficulty,
     rng: boardRng,
   });
 
@@ -338,7 +338,7 @@ export function generateBoard(options: GenerateBoardOptions): Board {
     blockCols: puzzle.blockCols,
     topics: [...options.topics],
     level: options.level,
-    boardDifficulty: options.boardDifficulty,
+    minMathCells,
     cells,
     solution,
     puzzle,

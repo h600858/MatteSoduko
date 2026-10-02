@@ -22,7 +22,6 @@ import {
   toggleActiveNote,
 } from '../../core/game/session.ts';
 import { cellAt } from '../../core/game/engine.ts';
-import type { BoardDifficulty } from '../../core/sudoku/generate.ts';
 import type { BoardSize } from '../../core/sudoku/grid.ts';
 import { taskRegistry } from '../../core/tasks/registry.ts';
 import type { Level, Topic } from '../../core/tasks/types.ts';
@@ -32,7 +31,6 @@ export interface Settings {
   topics: readonly Topic[];
   /** Skolenivået. Bare maler fra dette nivået brukes. */
   level: Level;
-  boardDifficulty: BoardDifficulty;
   mode: ErrorMode;
   /**
    * Når den er på, vektes oppgavevalget etter statistikken din. Da avhenger
@@ -60,7 +58,6 @@ export const DEFAULT_SETTINGS: Settings = {
   size: 9,
   topics: taskRegistry.topicsForLevel(DEFAULT_LEVEL).map((topic) => topic.id),
   level: DEFAULT_LEVEL,
-  boardDifficulty: 2,
   mode: 'rolig',
   adaptive: true,
   seed: '',
@@ -106,7 +103,6 @@ function reducer(state: GameState, action: GameAction): GameState {
           size: action.settings.size,
           topics: action.settings.topics,
           level: action.settings.level,
-          boardDifficulty: action.settings.boardDifficulty,
           seed,
           ...(action.settings.adaptive && action.weights !== undefined
             ? { weights: action.weights }

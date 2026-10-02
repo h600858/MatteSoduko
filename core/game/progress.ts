@@ -22,7 +22,7 @@ import { boardAward } from './scoring.ts';
 import type { Session, TaskTiming } from './session.ts';
 import { boardElapsedMs, countTasks, taskTimings } from './session.ts';
 
-export const PROGRESS_VERSION = 4;
+export const PROGRESS_VERSION = 5;
 
 /**
  * Versjon 1 lagret oppgavenivået som tallet 1, 2 eller 3. Versjon 2 lagrer
@@ -61,7 +61,6 @@ export const boardResultSchema = z.object({
   size: z.number().int().positive(),
   mode: z.enum(['streng', 'rolig']),
   level: z.enum(LEVELS as unknown as [Level, ...Level[]]),
-  boardDifficulty: z.number().int().min(1).max(3),
   points: z.number().int(),
   durationMs: z.number().nonnegative(),
   taskCount: z.number().int().nonnegative(),
@@ -72,6 +71,15 @@ export const boardResultSchema = z.object({
 });
 
 export type BoardResult = z.infer<typeof boardResultSchema>;
+
+/**
+ * Formen brettene hadde til og med versjon 4, da hulltallet var en innstilling
+ * spilleren kunne velge. Nå graves hvert brett så hardt størrelsen tillater, og
+ * antall hull leses av taskCount i stedet.
+ */
+const legacyBoardResultSchema = boardResultSchema.extend({
+  boardDifficulty: z.number().int().min(1).max(3),
+});
 
 /**
  * Totalen som samles opp over tid.
@@ -189,10 +197,20 @@ const v1Schema = z.object({
   version: z.literal(1),
   templates: z.record(z.string(), templateStatsSchema),
   boards: z.array(
-    boardResultSchema
+    legacyBoardResultSchema
       .omit({ level: true })
       .extend({ taskDifficulty: z.number().int().min(1).max(3) }),
   ),
+});
+
+/** Versjon 4: rekke og rekorder på plass, men hulltallet var ennå en innstilling. */
+const v4Schema = z.object({
+  version: z.literal(4),
+  lifetime: lifetimeSchema,
+  streak: streakSchema,
+  records: z.record(z.string(), personalRecordSchema),
+  templates: z.record(z.string(), templateStatsSchema),
+  boards: z.array(legacyBoardResultSchema),
 });
 
 /** Versjon 3: total på plass, men verken rekke eller rekorder. */
@@ -200,14 +218,14 @@ const v3Schema = z.object({
   version: z.literal(3),
   lifetime: lifetimeSchema,
   templates: z.record(z.string(), templateStatsSchema),
-  boards: z.array(boardResultSchema),
+  boards: z.array(legacyBoardResultSchema),
 });
 
 /** Versjon 2: skolenivå på plass, men fortsatt ingen total. */
 const v2Schema = z.object({
   version: z.literal(2),
   templates: z.record(z.string(), templateStatsSchema),
-  boards: z.array(boardResultSchema),
+  boards: z.array(legacyBoardResultSchema),
 });
 
 /**
@@ -278,6 +296,23 @@ export function migrate(data: unknown): unknown {
     };
   }
 
+  const v4 = v4Schema.safeParse(current);
+  if (v4.success) {
+    // Hulltallet sluttet å være en innstilling i versjon 5. Feltet fjernes, og
+    // ingenting går tapt: taskCount har alltid vært det faktiske hulltallet.
+    current = {
+      version: 5,
+      lifetime: v4.data.lifetime,
+      streak: v4.data.streak,
+      records: v4.data.records,
+      templates: v4.data.templates,
+      boards: v4.data.boards.map((board) => {
+        const { boardDifficulty: _ubrukt, ...resten } = board;
+        return resten;
+      }),
+    };
+  }
+
   return current;
 }
 
@@ -325,7 +360,6 @@ export function sessionRecord(session: Session, now: number): SessionRecord {
       size: session.board.size,
       mode: session.mode,
       level: session.board.level,
-      boardDifficulty: session.board.boardDifficulty,
       points: boardAward(session.config, {
         rawPoints: session.score.points,
         completed: session.status === 'fullført',

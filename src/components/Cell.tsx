@@ -40,7 +40,7 @@ export function Cell({
   const label = cell.given
     ? `Rad ${cell.row + 1}, kolonne ${cell.col + 1}: låst ${value}`
     : `Rad ${cell.row + 1}, kolonne ${cell.col + 1}: ${
-        blocked ? 'sperret' : value === 0 ? 'tom, har oppgave' : String(value)
+        blocked ? 'stengt' : value === 0 ? 'tom, har oppgave' : String(value)
       }`;
 
   return (

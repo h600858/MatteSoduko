@@ -1,13 +1,19 @@
 import { useMemo, useState } from 'react';
-import type { BoardDifficulty } from '../../core/sudoku/generate.ts';
 import type { BoardSize } from '../../core/sudoku/grid.ts';
 import { BOARD_SIZES } from '../../core/sudoku/grid.ts';
 import { DEFAULT_SCORING, maxBoardScore } from '../../core/game/scoring.ts';
-import { holesForDifficulty } from '../../core/sudoku/generate.ts';
+import { taskCountFor } from '../../core/sudoku/generate.ts';
 import { taskRegistry } from '../../core/tasks/registry.ts';
 import type { Level, Topic } from '../../core/tasks/types.ts';
 import { LEVEL_INFO } from '../../core/tasks/types.ts';
 import type { Settings } from '../state/game.tsx';
+
+/**
+ * Omtrent hvor få oppgaver man slipper unna med per størrelse, hvis man velger
+ * cellene godt. Målte snitt over 40 brett per størrelse. Det eksakte tallet for
+ * et konkret brett står i HUD-en når brettet er laget.
+ */
+const SMART_ANSLAG: Readonly<Record<number, number>> = { 4: 4, 6: 10, 9: 24 };
 
 interface SetupProps {
   settings: Settings;
@@ -16,14 +22,6 @@ interface SetupProps {
   knownTemplates: number;
   onStart: (settings: Settings) => void;
 }
-
-const BOARD_DIFFICULTIES: readonly BoardDifficulty[] = [1, 2, 3];
-
-const BOARD_LABEL: Readonly<Record<BoardDifficulty, string>> = {
-  1: 'Få hull',
-  2: 'Middels',
-  3: 'Mange hull',
-};
 
 export function Setup({
   settings,
@@ -59,15 +57,16 @@ export function Setup({
 
   // Hva brettet er verdt med perfekt spill. Vises som et tak, ikke som en
   // forventning: full tidsbonus krever under 20 sekunder per celle uten hint.
-  const oppgaver = holesForDifficulty(draft.size, draft.boardDifficulty);
+  const oppgaver = taskCountFor(draft.size);
   const tak = maxBoardScore(DEFAULT_SCORING, oppgaver, draft.level);
 
   return (
     <div className="oppsett">
       <h1>MatteSudoku</h1>
       <p className="ingress">
-        Hver tomme celle inneholder en matteoppgave. Svaret er tallet som skal stå i cellen,
-        og sudokureglene sier fra hvis noe ikke stemmer.
+        Brettet er helt tomt. Hver eneste celle skjuler en matteoppgave, og svaret er
+        tallet som skal stå der. Du regner deg innover til du har nok tall — og så kan du
+        løse resten som et vanlig sudoku.
       </p>
 
       <form
@@ -134,21 +133,12 @@ export function Setup({
               {size}×{size}
             </label>
           ))}
-        </fieldset>
-
-        <fieldset>
-          <legend>Antall hull</legend>
-          {BOARD_DIFFICULTIES.map((level) => (
-            <label key={level}>
-              <input
-                type="radio"
-                name="brettnivaa"
-                checked={draft.boardDifficulty === level}
-                onChange={() => setDraft({ ...draft, boardDifficulty: level })}
-              />
-              {BOARD_LABEL[level]}
-            </label>
-          ))}
+          <p className="hjelpetekst">
+            Alle cellene er tomme, så et {draft.size}×{draft.size} har {oppgaver} oppgaver.
+            Men du trenger ikke løse alle: velger du cellene smart, holder det med rundt{' '}
+            {SMART_ANSLAG[draft.size]} før resten følger av seg selv. Tar du dem i tilfeldig
+            rekkefølge, trenger du omtrent det dobbelte. Der ligger strategien.
+          </p>
         </fieldset>
 
         <fieldset>
@@ -163,7 +153,7 @@ export function Setup({
             <span className="valgtekst">
               <strong>Rolig</strong>
               <span className="hjelpetekst">
-                Feil vises først når du trykker sjekk, og koster ikke liv.
+                Du får ikke vite om svaret var feil før du trykker sjekk, og det koster ingen liv.
               </span>
             </span>
           </label>
@@ -176,7 +166,7 @@ export function Setup({
             />
             <span className="valgtekst">
               <strong>Streng</strong>
-              <span className="hjelpetekst">Feil markeres med én gang og koster ett liv.</span>
+              <span className="hjelpetekst">Feil slår ut med én gang, og koster ett liv.</span>
             </span>
           </label>
         </fieldset>
@@ -190,11 +180,11 @@ export function Setup({
               onChange={() => setDraft({ ...draft, adaptive: !draft.adaptive })}
             />
             <span className="valgtekst">
-              <strong>Tilpass etter statistikken min</strong>
+              <strong>Tilpass etter hvordan jeg ligger an</strong>
               <span className="hjelpetekst">
                 {knownTemplates === 0
-                  ? 'Ingen statistikk ennå, så alle maler trekkes likt. Etter noen brett vektes maler du bommer på eller bruker lang tid på, oftere.'
-                  : `Maler du bommer på eller bruker lang tid på trekkes oftere. Bygger på ${knownTemplates} maler du har spilt.`}
+                  ? 'Du har ikke spilt nok ennå, så alle oppgavetyper kommer like ofte. Etter noen brett begynner de du sliter med å dukke opp oftere.'
+                  : `Oppgavetyper du bommer på eller bruker lang tid på kommer oftere. Bygger på de ${knownTemplates} typene du har spilt.`}
               </span>
             </span>
           </label>
@@ -209,8 +199,8 @@ export function Setup({
             onChange={(event) => setDraft({ ...draft, seed: event.target.value })}
           />
           <p className="hjelpetekst">
-            Samme seed gir alltid samme sudoku. Med tilpasset oppgavevalg kan oppgavene i
-            cellene endre seg etter hvert som statistikken din vokser.
+            Samme seed gir alltid samme sudoku. Slår du på tilpasning, kan oppgavene i
+            cellene likevel bytte seg ut etter hvert som du spiller mer.
           </p>
         </fieldset>
 
@@ -220,7 +210,7 @@ export function Setup({
             <span className="pottemerke">poeng å hente</span>
           </div>
           <p className="hjelpetekst">
-            {oppgaver} oppgaver · {LEVEL_INFO[draft.level].label.toLowerCase()}. Dette er
+Rundt {oppgaver} oppgaver · {LEVEL_INFO[draft.level].label.toLowerCase()}. Dette er
             taket: alt riktig, ingen hint, og raskt nok til full tidsbonus.
           </p>
         </div>

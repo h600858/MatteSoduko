@@ -95,7 +95,6 @@ describe('konsepthintet i spill', () => {
         size: 6,
         topics: temaerPaa(level),
         level,
-        boardDifficulty: 2,
         seed: `konsept:${level}`,
       });
       const første = board.cells.find((cell) => !cell.given);
@@ -122,7 +121,6 @@ describe('konsepthintet i spill', () => {
       size: 6,
       topics: temaerPaa('vanskelig'),
       level: 'vanskelig',
-      boardDifficulty: 2,
       seed: 'trapp',
     });
     const mål = board.cells.find((cell) => !cell.given);
@@ -149,7 +147,6 @@ describe('konsepthintet i spill', () => {
       size: 4,
       topics: temaerPaa('enkel'),
       level: 'enkel',
-      boardDifficulty: 1,
       seed: 'ukjent-mal',
     });
     const mål = board.cells.find((cell) => !cell.given);

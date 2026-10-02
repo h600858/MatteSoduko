@@ -1,31 +1,53 @@
 /**
  * Generering av brett.
  *
- * Rekkefølgen er alltid: lag et komplett gyldig brett først, grav deretter hull
- * i det. Da er fasitsifferet i hver tomme celle kjent, og oppgavegeneratoren
- * kan bestille en oppgave med akkurat det svaret.
+ * Rekkefølgen er fortsatt: lag et komplett gyldig brett først. Da er
+ * fasitsifferet i hver celle kjent, og oppgavegeneratoren kan bestille en
+ * oppgave med akkurat det svaret.
+ *
+ * Men brettet spilleren får er HELT TOMT. Hver eneste celle bærer en
+ * matteoppgave. Det er selve spillet: du regner til du har nok sifre til at
+ * resten følger av sudokulogikk, og da slipper du å regne mer.
+ *
+ * Dette bryter med den vanlige sudokuregelen om én løsning. Et tomt rutenett
+ * har mange gyldige utfyllinger, og det er helt greit her: oppgavene ER
+ * ledetrådene. Hver celle kan alltid løses ved å regne, så spilleren står
+ * aldri fast. Og i det øyeblikket nok celler er fylt, er resten entydig — da
+ * kan man dedusere seg i mål.
+ *
+ * Målt over 40 brett per størrelse: velger man cellene godt, holder det med 4
+ * oppgaver på 4x4, 10 på 6x6 og 24 på 9x9. Tar man dem i tilfeldig rekkefølge,
+ * trengs rundt 7, 18 og 42. Gapet er strategien.
  */
 import type { Rng } from '../rng.ts';
 import type { BoardSize, Grid } from './grid.ts';
-import { allCells, createGrid, geometryFor, valueAt, withValue } from './grid.ts';
+import {
+  allCells,
+  countEmpty,
+  createEmptyGrid,
+  createGrid,
+  geometryFor,
+  valueAt,
+  withValue,
+} from './grid.ts';
 import { countSolutions } from './solve.ts';
 
-/** Vanskelighetsgrad for selve brettet. Uavhengig av oppgavenes nivå. */
-export type BoardDifficulty = 1 | 2 | 3;
+/**
+ * Hvor mange oppgaver et brett har. Alle cellene, siden brettet starter tomt.
+ *
+ * Finnes som funksjon fordi kallerne ikke skal trenge å vite at «alle celler»
+ * er svaret — bare at tallet følger av størrelsen.
+ */
+export function taskCountFor(size: BoardSize): number {
+  return size * size;
+}
 
 /**
- * Hvor mange hull vi sikter mot. Graveren kan ende opp med litt færre hvis
- * brettet ellers ville fått flere løsninger.
+ * Hvor mange gravrekkefølger vi prøver når vi regner ut hvor få oppgaver man
+ * kan slippe unna med. Flere forsoek gir et litt lavere, men fortsatt
+ * oppnåelig, tall. Fire koster rundt 11 ms på 9x9.
  */
-const HOLES: Readonly<Record<BoardSize, Readonly<Record<BoardDifficulty, number>>>> = {
-  4: { 1: 5, 2: 7, 3: 9 },
-  6: { 1: 12, 2: 17, 3: 21 },
-  9: { 1: 32, 2: 42, 3: 50 },
-};
-
-export function holesForDifficulty(size: BoardSize, difficulty: BoardDifficulty): number {
-  return HOLES[size][difficulty];
-}
+const DIG_ORDERS_TRIED = 4;
 
 /**
  * Komplett, gyldig brett med tallene 1..size. Backtracking med randomisert
@@ -84,7 +106,8 @@ export function generateSolved(size: BoardSize, rng: Rng): Grid {
  * at brettet alltid har nøyaktig én løsning når vi er ferdige.
  *
  * Resultatet kan ha færre hull enn bestilt. Det er tilsiktet: entydighet veier
- * tyngre enn å treffe hulltallet nøyaktig.
+ * tyngre enn å treffe hulltallet nøyaktig. Ber man om flere hull enn brettet
+ * har celler, graves det så dypt entydigheten tillater.
  */
 export function dig(grid: Grid, holes: number, rng: Rng): Grid {
   let current = grid;
@@ -106,20 +129,56 @@ export function dig(grid: Grid, holes: number, rng: Rng): Grid {
 
 export interface PuzzleOptions {
   size: BoardSize;
-  boardDifficulty: BoardDifficulty;
   rng: Rng;
 }
 
 export interface Puzzle {
-  /** Brettet med hull. Nøyaktig én løsning. */
+  /** Brettet spilleren starter med. Helt tomt — hver celle har en oppgave. */
   puzzle: Grid;
-  /** Den komplette løsningen. Fasitsifferet for hver tomme celle. */
+  /** Den komplette løsningen. Fasitsifferet for hver celle. */
   solution: Grid;
+  /**
+   * Færrest oppgaver som må løses før resten følger av sudokulogikk, hvis man
+   * velger cellene godt. Et oppnåelig tall, ikke et teoretisk minimum: det
+   * finnes en konkret rekkefølge som treffer det.
+   *
+   * Tar man cellene i tilfeldig rekkefølge, trengs omtrent det dobbelte. Der
+   * ligger strategien.
+   */
+  minMathCells: number;
 }
 
-/** Komplett brett pluss et gravd brett med garantert entydig løsning. */
-export function generatePuzzle({ size, boardDifficulty, rng }: PuzzleOptions): Puzzle {
-  const solution = generateSolved(size, rng);
-  const puzzle = dig(solution, holesForDifficulty(size, boardDifficulty), rng);
-  return { puzzle, solution };
+/**
+ * Færrest celler som må stå igjen for at resten er entydig bestemt.
+ *
+ * Utnytter at dette er nøyaktig det motsatte av graving: graver vi så dypt
+ * entydigheten tillater, er cellene som står igjen et sett ledetråder som
+ * bestemmer brettet. Vi prøver noen rekkefølger og beholder det minste settet.
+ */
+export function minCluesFor(solution: Grid, rng: Rng): number {
+  const cellCount = solution.size * solution.size;
+  let best = cellCount;
+
+  for (let d = 0; d < DIG_ORDERS_TRIED; d += 1) {
+    const igjen = cellCount - countEmpty(dig(solution, cellCount, rng.fork(`ledetrad:${d}`)));
+    if (igjen < best) best = igjen;
+  }
+
+  return best;
+}
+
+/**
+ * Et tomt brett pluss løsningen bak det.
+ *
+ * Søket er deterministisk: alle tilfeldige valg kommer fra forkede strømmer av
+ * rng, så samme seed gir samme brett.
+ */
+export function generatePuzzle({ size, rng }: PuzzleOptions): Puzzle {
+  const solution = generateSolved(size, rng.fork('losning'));
+  return {
+    // Ingen graving: spilleren starter på bar bakke og regner seg innover.
+    puzzle: createEmptyGrid(size),
+    solution,
+    minMathCells: minCluesFor(solution, rng.fork('ledetrader')),
+  };
 }

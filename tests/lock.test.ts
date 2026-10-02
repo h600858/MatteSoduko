@@ -24,7 +24,6 @@ function board(seed: string, size: 4 | 6 | 9 = 9): Board {
     size,
     topics: ALLE_TEMAER,
     level: NIVAA,
-    boardDifficulty: 2,
     seed,
   });
 }

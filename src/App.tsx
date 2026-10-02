@@ -161,7 +161,6 @@ export function App(): React.JSX.Element {
           level: oppsett.level,
           topics: oppsett.topics,
           size: oppsett.size,
-          boardDifficulty: oppsett.boardDifficulty,
           seed: oppsett.seed,
         },
       });

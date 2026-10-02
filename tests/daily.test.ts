@@ -12,7 +12,7 @@ import { generateBoard } from '../core/game/engine.ts';
 import type { BoardResult } from '../core/game/progress.ts';
 import { emptyProgress, recordSession } from '../core/game/progress.ts';
 import { maxBoardScore, DEFAULT_SCORING, LEVEL_MULTIPLIER } from '../core/game/scoring.ts';
-import { holesForDifficulty } from '../core/sudoku/generate.ts';
+import { taskCountFor } from '../core/sudoku/generate.ts';
 import { taskKey, LEVELS } from '../core/tasks/types.ts';
 
 const config = DEFAULT_SCORING;
@@ -24,7 +24,6 @@ function boardResult(over: Partial<BoardResult> = {}): BoardResult {
     size: 6,
     mode: 'rolig',
     level: 'middels',
-    boardDifficulty: 2,
     points: 900,
     durationMs: 60_000,
     taskCount: 17,
@@ -61,9 +60,10 @@ describe('dagens brett: alle får det samme', () => {
     const iMorgen = dailyBoard(new Date(2026, 8, 29), 'middels');
     expect(iMorgen.seed).not.toBe(iDag.seed);
 
+    // Begge utgangsstillinger er tomme, så fasiten er det som skiller dagene.
     const a = generateBoard({ ...iDag, seed: iDag.seed });
     const b = generateBoard({ ...iMorgen, seed: iMorgen.seed });
-    expect(b.puzzle.cells).not.toEqual(a.puzzle.cells);
+    expect(b.solution.cells).not.toEqual(a.solution.cells);
   });
 
   it('gir ulike brett på ulike nivåer samme dag', () => {
@@ -85,21 +85,16 @@ describe('dagens brett: alle får det samme', () => {
       for (const level of LEVELS) {
         const oppsett = dailyBoard(new Date(2026, 0, 1 + dag), level);
         expect([6, 9]).toContain(oppsett.size);
-        expect([1, 2, 3]).toContain(oppsett.boardDifficulty);
       }
     }
   });
 
-  it('varierer størrelse og hulltall over tid', () => {
+  it('varierer størrelse over tid', () => {
     const størrelser = new Set<number>();
-    const hull = new Set<number>();
     for (let dag = 0; dag < 60; dag += 1) {
-      const oppsett = dailyBoard(new Date(2026, 0, 1 + dag), 'middels');
-      størrelser.add(oppsett.size);
-      hull.add(oppsett.boardDifficulty);
+      størrelser.add(dailyBoard(new Date(2026, 0, 1 + dag), 'middels').size);
     }
     expect(størrelser.size).toBeGreaterThan(1);
-    expect(hull.size).toBeGreaterThan(1);
   });
 
   it('bygger et gyldig brett med unike oppgaver', () => {
@@ -186,7 +181,7 @@ describe('maksimal poengsum for et brett', () => {
 
   it('er et tak ingen brett kan gå over', () => {
     // Perfekt spill: alle celler riktig med null tid brukt.
-    const taskCount = holesForDifficulty(6, 2);
+    const taskCount = taskCountFor(6);
     const tak = maxBoardScore(config, taskCount, 'middels');
     const perfekt =
       taskCount * (config.basePerCell + config.maxTimeBonus + config.noHintBonus);

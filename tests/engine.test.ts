@@ -28,7 +28,6 @@ function options(size: BoardSize, seed: string): GenerateBoardOptions {
     size,
     topics: ALLE_TEMAER,
     level: NIVAA,
-    boardDifficulty: 2,
     seed,
   };
 }
@@ -80,12 +79,21 @@ describe('generateBoard', () => {
     }
   });
 
-  it('holder brettnivå og oppgavenivå fra hverandre', () => {
-    const lett = generateBoard({ ...options(9, 'nivaa'), boardDifficulty: 1 });
-    const mangeHull = generateBoard({ ...options(9, 'nivaa'), boardDifficulty: 3 });
-
-    // Samme seed og samme nivå, men ulikt hulltall.
-    expect(remainingCells(mangeHull).length).toBeGreaterThan(remainingCells(lett).length);
+  it('starter helt tomt uansett oppgavenivå', () => {
+    // Oppgavenivået styrer matematikken, ikke sudokuen. Alle nivåer skal gi et
+    // tomt brett der hver celle bærer en oppgave.
+    for (const level of LEVELS) {
+      const board = generateBoard({
+        size: 9,
+        topics: temaerPaa(level),
+        level,
+        seed: `tomt:${level}`,
+      });
+      expect(remainingCells(board).length, level).toBe(81);
+      expect(board.cells.every((cell) => !cell.given && cell.task !== null), level).toBe(true);
+      expect(board.minMathCells, level).toBeGreaterThan(0);
+      expect(board.minMathCells, level).toBeLessThan(81);
+    }
   });
 
   it('bruker bare maler fra valgt nivå', () => {
@@ -119,7 +127,6 @@ describe('testkrav 4: ingen to identiske oppgavetekster', () => {
       for (let i = 0; i < 10; i += 1) {
         const board = generateBoard({
           ...options(size, `unik:${size}:${i}`),
-          boardDifficulty: 3,
         });
 
         const seen = new Map<string, string>();
@@ -140,7 +147,7 @@ describe('testkrav 4: ingen to identiske oppgavetekster', () => {
   }
 
   it('gir unike tekster også når mange celler deler samme fasit', () => {
-    const board = generateBoard({ ...options(9, 'samme-fasit'), boardDifficulty: 3 });
+    const board = generateBoard(options(9, 'samme-fasit'));
     const byAnswer = new Map<number, string[]>();
 
     for (const cell of board.cells) {
@@ -170,7 +177,6 @@ describe('nivåene bærer et helt brett', () => {
         size: 9,
         topics: temaerPaa(level),
         level,
-        boardDifficulty: 3,
         seed: `nivaabrett:${level}`,
       });
 
@@ -195,7 +201,6 @@ describe('nivåene bærer et helt brett', () => {
         size: 6,
         topics: temaerPaa(level),
         level,
-        boardDifficulty: 2,
         seed: `rent:${level}`,
       });
       for (const cell of board.cells) {
@@ -308,9 +313,14 @@ describe('testkrav 6: reproduserbarhet', () => {
   }
 
   it('gir et annet brett for en annen seed', () => {
+    // Utgangsstillingen er tom for alle brett nå, så forskjellen måles på
+    // fasiten og på oppgavene — det er de som skiller to brett.
     const a = generateBoard(options(9, 'seed-a'));
     const b = generateBoard(options(9, 'seed-b'));
-    expect(b.puzzle.cells).not.toEqual(a.puzzle.cells);
+    expect(b.solution.cells).not.toEqual(a.solution.cells);
+    expect(b.cells.map((cell) => cell.task?.prompt)).not.toEqual(
+      a.cells.map((cell) => cell.task?.prompt),
+    );
   });
 
   it('flytter ikke på brettet når bare oppgavevalget endres', () => {
@@ -329,16 +339,32 @@ describe('testkrav 6: reproduserbarhet', () => {
 });
 
 describe('celleoperasjoner', () => {
-  it('låser givne celler', () => {
+  it('gir ingen givne celler — alt skal regnes ut', () => {
+    // Brettet starter tomt, så ingen celle er utfylt fra start. Vakten mot å
+    // skrive i en gitt celle står fortsatt i setValue, men generatoren lager
+    // ikke slike celler lenger.
     const board = generateBoard(options(9, 'laast'));
-    const given = board.cells.find((cell) => cell.given);
-    expect(given).toBeDefined();
-    if (given === undefined) return;
+    expect(board.cells.some((cell) => cell.given)).toBe(false);
+    expect(board.cells.every((cell) => cell.task !== null)).toBe(true);
+  });
 
-    const etter = setValue(board, given.row, given.col, 1);
-    expect(etter).toBe(board);
-    expect(cellAt(etter, given.row, given.col).userValue).toBeNull();
-    expect(effectiveValue(cellAt(etter, given.row, given.col))).toBe(given.solution);
+  it('holder vakten mot å skrive i en gitt celle', () => {
+    // Testes direkte på modellen, siden generatoren ikke lager givne celler.
+    const board = generateBoard(options(4, 'vakt'));
+    const { row, col } = firstEmpty(board);
+    const medGitt: Board = {
+      ...board,
+      cells: board.cells.map((cell) =>
+        cell.row === row && cell.col === col
+          ? { ...cell, given: true, task: null, status: 'låst' as const }
+          : cell,
+      ),
+    };
+
+    const etter = setValue(medGitt, row, col, 1);
+    expect(etter).toBe(medGitt);
+    expect(cellAt(etter, row, col).userValue).toBeNull();
+    expect(effectiveValue(cellAt(etter, row, col))).toBe(cellAt(medGitt, row, col).solution);
   });
 
   it('avviser verdier utenfor brettets tallområde', () => {

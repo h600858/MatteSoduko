@@ -81,7 +81,7 @@ export function Profile({
           <div className="karrierelinje">
             <strong>{rang.label}</strong>
             {neste === null ? (
-              <span className="hjelpetekst">Høyeste trinn nådd.</span>
+              <span className="hjelpetekst">Du er på toppen.</span>
             ) : (
               <span className="hjelpetekst">
                 {(neste.from - totals.totalPoints).toLocaleString("nb-NO")} poeng til{" "}
@@ -116,18 +116,18 @@ export function Profile({
 
       {!persistsToFile() && (
         <p className="hjelpetekst">
-          Kjører i nettleser: fremdriften lagres i localStorage, ikke i
+          Du spiller i nettleseren, så alt lagres lokalt i nettleseren i stedet for i
           progress.json.
         </p>
       )}
 
       {totals.boardsPlayed === 0 && rows.length === 0 ? (
-        <p className="tomtekst">Ingen brett er spilt ferdig ennå.</p>
+        <p className="tomtekst">Du har ikke spilt noe brett ennå. Sett i gang!</p>
       ) : (
         <>
           <dl className="noekkeltall">
             <div>
-              <dt>Brett spilt</dt>
+              <dt>Brett</dt>
               <dd>{totals.boardsPlayed}</dd>
             </div>
             <div>
@@ -150,11 +150,11 @@ export function Profile({
               <dd>{formatTime(progress.lifetime.msPlayed)}</dd>
             </div>
             <div>
-              <dt>Dager på rad</dt>
+              <dt>Streak</dt>
               <dd>
                 {rekke.current}
                 {rekke.longest > rekke.current && (
-                  <span className="bidel">lengste {rekke.longest}</span>
+                  <span className="bidel">best: {rekke.longest}</span>
                 )}
               </dd>
             </div>
@@ -165,11 +165,11 @@ export function Profile({
               </dd>
             </div>
             <div>
-              <dt>Hint brukt</dt>
+              <dt>Hint</dt>
               <dd>{totals.hintsUsed}</dd>
             </div>
             <div>
-              <dt>Feil som kostet poeng</dt>
+              <dt>Bom som kostet poeng</dt>
               <dd>{totals.mistakes}</dd>
             </div>
           </dl>

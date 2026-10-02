@@ -5,7 +5,6 @@
  *   npm run demo:brett -- --seed=hvl --storrelse=6 --nivaa=2 --brettnivaa=3
  *   npm run demo:brett -- --fasit
  */
-import type { BoardDifficulty } from '../core/sudoku/generate.ts';
 import { generateBoard, remainingCells } from '../core/game/engine.ts';
 import type { BoardSize } from '../core/sudoku/grid.ts';
 import { gridToString, isBoardSize } from '../core/sudoku/grid.ts';
@@ -27,9 +26,6 @@ const size: BoardSize = isBoardSize(rawSize) ? rawSize : 9;
 const rawLevel = flag('nivaa') ?? 'middels';
 const level: Level = isLevel(rawLevel) ? rawLevel : 'middels';
 
-const rawBoard = Number(flag('brettnivaa') ?? 2);
-const boardDifficulty: BoardDifficulty = rawBoard === 1 ? 1 : rawBoard === 3 ? 3 : 2;
-
 const chosen: readonly Topic[] = (flag('temaer') ?? '')
   .split(',')
   .map((part) => part.trim())
@@ -37,12 +33,12 @@ const chosen: readonly Topic[] = (flag('temaer') ?? '')
 const topics =
   chosen.length > 0 ? chosen : taskRegistry.topicsForLevel(level).map((topic) => topic.id);
 
-const board = generateBoard({ size, topics, level, boardDifficulty, seed });
+const board = generateBoard({ size, topics, level, seed });
 const open = remainingCells(board);
 
 console.log(`Seed: ${board.seed}`);
 console.log(
-  `${size}x${size}   hull-nivå ${boardDifficulty}   vanskelighetsgrad: ${level}   ` +
+  `${size}x${size}   minst ${board.minMathCells} å regne   oppgavenivå: ${level}   ` +
     `temaer: ${topics.map(topicLabel).join(', ')}`,
 );
 console.log(`${open.length} celler med oppgave, ${size * size - open.length} givne.`);

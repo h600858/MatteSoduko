@@ -155,7 +155,6 @@ describe('vekting i brettbyggingen', () => {
     size: 9 as const,
     topics: ALLE_TEMAER,
     level: NIVAA,
-    boardDifficulty: 3 as const,
   };
 
   it('lar en tungt vektet mal dominere oppgavevalget', () => {

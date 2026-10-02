@@ -14,7 +14,6 @@ import type { TaskRegistry } from '../tasks/registry.ts';
 import { taskRegistry as defaultRegistry } from '../tasks/registry.ts';
 import type { Level, Topic } from '../tasks/types.ts';
 import { LEVELS } from '../tasks/types.ts';
-import type { BoardDifficulty } from '../sudoku/generate.ts';
 import type { BoardSize } from '../sudoku/grid.ts';
 import type { Progress } from './progress.ts';
 
@@ -38,21 +37,21 @@ export function isDailySeed(seed: string): boolean {
 }
 
 /**
- * Størrelsene og hulltallene dagens brett trekker fra.
+ * Størrelsene dagens brett trekker fra.
  *
- * 6x6 går igjen fordi det er den naturlige økta: rundt tjue oppgaver. 9x9
+ * 6x6 går igjen fordi det er den naturlige økta: rundt tjuefem oppgaver. 9x9
  * dukker opp av og til, som en større dag. 4x4 er utelatt med vilje, siden det
  * bare har fire mulige svar og derfor gjentar de samme malene.
+ *
+ * Hulltallet trekkes ikke: hvert brett graves så hardt størrelsen tillater.
  */
 const DAGENS_STØRRELSER: readonly BoardSize[] = [6, 6, 6, 9];
-const DAGENS_HULL: readonly BoardDifficulty[] = [1, 2, 2, 3];
 
 export interface DailyBoard {
   /** Datoen brettet hører til, som YYYY-MM-DD. */
   date: string;
   level: Level;
   size: BoardSize;
-  boardDifficulty: BoardDifficulty;
   topics: readonly Topic[];
   seed: string;
 }
@@ -65,14 +64,13 @@ export function dailyBoard(
 ): DailyBoard {
   const seed = dailySeed(date, level);
   // Egen strøm for oppsettet, slik at selve brettet ikke flytter seg dersom
-  // listen over størrelser eller hulltall endres senere.
+  // listen over størrelser endres senere.
   const rng = createRng(`oppsett:${seed}`);
 
   return {
     date: isoDate(date),
     level,
     size: rng.pick(DAGENS_STØRRELSER),
-    boardDifficulty: rng.pick(DAGENS_HULL),
     topics: registry.topicsForLevel(level).map((topic) => topic.id),
     seed,
   };

@@ -24,7 +24,7 @@ export function greeting(date: Date): string {
 
 export const QUOTES: readonly string[] = [
   'Du blir ikke bedre av å løse det du allerede kan.',
-  'Feil svar er data. Noter hva som glapp, og gå videre.',
+  'Et feil svar er verdt noe hvis du finner ut hvor det glapp.',
   'Ett brett i dag slår ti brett kvelden før eksamen.',
   'Den som regner sakte og riktig, regner fort til slutt.',
   'Du trenger ikke være rask. Du trenger å være ferdig.',
@@ -46,7 +46,7 @@ export const QUOTES: readonly string[] = [
   'Fart kommer gratis når forståelsen sitter.',
   'Les oppgaven én gang til. Svaret ligger ofte i teksten.',
   'Den beste tiden å begynne var i går. Den nest beste er nå.',
-  'Ikke sammenlign kapittel tre av din reise med kapittel ti av noen andres.',
+  'Ikke mål deg mot noen som har holdt på dobbelt så lenge som deg.',
   'Å stå fast i ti minutter er billigere enn å hoppe over i ti uker.',
   'Rutine slår motivasjon. Motivasjon kommer og går.',
   'Du husker det du har slitt med. Ikke det du bare leste.',
