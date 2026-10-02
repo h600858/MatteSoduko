@@ -14,6 +14,7 @@
     "demo:tasks": "node --no-warnings=ExperimentalWarning scripts/demo-tasks.ts",
     "demo:brett": "node --no-warnings=ExperimentalWarning scripts/demo-board.ts",
     "dev:web": "vite --mode web",
+    "build:web": "tsc --noEmit && vite build --mode web",
     "ikon": "node --no-warnings=ExperimentalWarning scripts/lag-ikon.ts",
     "pack": "npm run build && electron-builder --dir",
     "dist": "npm run build && electron-builder --win",
